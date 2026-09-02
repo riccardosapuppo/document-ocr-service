@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!--
+    The same mark as the one inlined in index.html: a page, and one line of it
+    leaving. Kept as one drawing in two files because a favicon is loaded
+    outside the page and inherits none of its colours; `npm run check:mark`
+    compares the geometry, because keeping two files in step by remembering is
+    not a plan.
+  -->
+  <rect width="32" height="32" rx="7" fill="#2a2540"/>
+  <rect x="8" y="7" width="11" height="18" rx="2.5" fill="#b9aefc" opacity="0.55"/>
+  <rect x="12" y="14" width="14" height="4.5" rx="2.25" fill="#b9aefc"/>
+</svg>

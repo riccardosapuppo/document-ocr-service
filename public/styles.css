@@ -1,0 +1,571 @@
+/* The look, and where it comes from.
+ *
+ * This is a control panel for a service, not a document viewer and not a
+ * product page. Somebody opens it to hold the API for five minutes: get a
+ * token, send something, watch the three ways differ, run into the refusals on
+ * purpose. So it is built like an instrument:
+ *
+ *   - **A pale workbench with one dark panel.** The transcript is the only dark
+ *     surface on the page, and that is the signature: everything above it is a
+ *     control, and the thing it is talking to answers down there, live. It is
+ *     the one part a screenshot of a REST API cannot show.
+ *   - **Indigo is the accent**, and it means "this is a control you press or a
+ *     state you hold". Green and red appear only in the transcript, where they
+ *     mean a service said yes or said no.
+ *   - **Monospace wherever the machine is speaking** — the transcript, the JSON,
+ *     the extracted text, a client id. A service is talked to in exact strings
+ *     and setting them in a text face is a small lie about what they are.
+ */
+
+:root {
+  --ink: #1b1a24;
+  --ink-soft: #4e4c60;
+  --ink-faint: #83819a;
+
+  --bg: #f1f0f5;
+  --surface: #ffffff;
+  --raised: #f7f7fb;
+  --line: #e0dfe9;
+  --hover: #eceaf4;
+
+  --accent: #4b3fa7;
+  --accent-ink: #322a75;
+  --accent-soft: #ebe8f9;
+  --accent-line: #c7c0ec;
+
+  /* The console. One dark surface, and it is where the service speaks. */
+  --panel: #21203a;
+  --panel-line: #35335a;
+  --panel-ink: #cfcde8;
+  --panel-faint: #7b789e;
+  --panel-good: #6fd6a4;
+  --panel-bad: #ff8e88;
+  --panel-sent: #8fb6ff;
+
+  --logo-ground: #2a2540;
+  --logo-mark: #b9aefc;
+
+  --shadow: 0 1px 2px rgb(27 26 36 / 0.05), 0 6px 18px rgb(27 26 36 / 0.06);
+
+  --ui: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'Cascadia Mono', 'SF Mono', 'JetBrains Mono', Menlo,
+    Consolas, 'Liberation Mono', monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e9e8f2;
+    --ink-soft: #b0aec6;
+    --ink-faint: #807e9a;
+
+    --bg: #131220;
+    --surface: #1a1928;
+    --raised: #201f31;
+    --line: #2f2d45;
+    --hover: #272539;
+
+    --accent: #a396f5;
+    --accent-ink: #d9d2ff;
+    --accent-soft: #262143;
+    --accent-line: #3d3568;
+
+    --panel: #0d0d17;
+    --panel-line: #26253f;
+
+    --shadow: none;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--accent-ink);
+}
+
+/* ------------------------------------------------------------------- header */
+
+.top {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding: 0.7rem 1.4rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.wordmark strong {
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-size: 1.02rem;
+}
+
+/* What this copy of the service can actually read. Not a slogan: it changes
+   with the configuration, and it is the first thing somebody needs to know. */
+.wordmark span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+}
+
+.engines {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  flex-wrap: wrap;
+}
+
+.engine {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.engine em {
+  font-style: normal;
+  font-size: 0.66rem;
+  color: var(--ink-faint);
+}
+
+/* An engine that cannot run says so here rather than at the moment somebody
+   needs it. */
+.engine[data-ready='false'] {
+  opacity: 0.55;
+  border-style: dashed;
+}
+
+/* --------------------------------------------------------------------- page */
+
+main {
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding: 1.5rem 1.4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1.1rem 1.2rem;
+  box-shadow: var(--shadow);
+}
+
+h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.lede {
+  margin: 0 0 0.9rem;
+  max-width: 66ch;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+/* -------------------------------------------------------------- the clients */
+
+.clients {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+button.client {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+button.client:hover {
+  background: var(--hover);
+}
+
+button.client.picked {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+button.client strong {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+button.client span {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+button.client em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------------- inputs */
+
+.row {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.row label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.row label.grow {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.row label span {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+input,
+select {
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+input[type='text'],
+input[type='password'] {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  min-width: 13rem;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+button.go {
+  padding: 0.48rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+button.go:hover {
+  opacity: 0.9;
+}
+
+.ways {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.samples {
+  margin: 0.8rem 0 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+button.link {
+  padding: 0;
+  margin: 0 0.15rem;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--accent);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--accent-line);
+  cursor: pointer;
+}
+
+button.link:hover {
+  border-bottom-color: var(--accent);
+}
+
+.state {
+  margin: 0.9rem 0 0;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  background: var(--raised);
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+}
+
+.state[data-state='held'] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: var(--accent-line);
+}
+
+/* ------------------------------------------------------------- the console */
+
+.progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+  margin-bottom: 0.7rem;
+}
+
+.progress .fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 180ms ease;
+}
+
+/* The one dark surface on the page. Everything above it is a control; this is
+   the service answering. */
+.transcript {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  min-height: 11rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  background: var(--panel);
+  color: var(--panel-ink);
+  border-radius: 10px;
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.transcript .line {
+  color: var(--panel-faint);
+}
+
+.transcript .line.sent {
+  color: var(--panel-sent);
+}
+
+.transcript .line.good {
+  color: var(--panel-good);
+}
+
+.transcript .line.bad {
+  color: var(--panel-bad);
+}
+
+/* ---------------------------------------------------------------- the answers */
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+pre.text,
+pre.json {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  max-height: 26rem;
+  overflow: auto;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding: 1.1rem 1.4rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 54rem) {
+  .two {
+    grid-template-columns: 1fr;
+  }
+
+  .bar {
+    padding: 0.6rem 1rem;
+  }
+
+  main {
+    padding: 1.2rem 1rem 2.5rem;
+  }
+
+  input[type='text'],
+  input[type='password'] {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .row label {
+    flex: 1 1 100%;
+  }
+}
+
+/* The file control: a label somebody can read, in the language of the page.
+   The input itself is still there and still required — it is simply not what
+   is drawn, because the native one is rendered by the browser in the language
+   of the operating system and sized by the platform. */
+.file {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.file .what {
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+label.pick {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.3rem 0.35rem 0.3rem 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+label.pick input[type='file'] {
+  /* Off the page rather than display:none, so it keeps its place in the tab
+     order and a screen reader still finds it. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+label.pick .button {
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  background: var(--hover);
+  border: 1px solid var(--line);
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+label.pick:hover .button {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent-ink);
+}
+
+label.pick:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chosen {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chosen[data-chosen='yes'] {
+  color: var(--ink);
+}

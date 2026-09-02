@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Document OCR Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="theme-color" content="#2a2540" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+
+  <body>
+    <!--
+      The page a service like this needs, which is not a product page.
+
+      Its job is to let somebody hold the API in their hands for five minutes:
+      get a token, send a document, watch the three ways differ, and run into
+      the refusals on purpose. The original had exactly this shape — credentials
+      at the top, the upload under them, progress, then the text and the raw
+      JSON — and the shape is right, because it is the order the questions are
+      asked in.
+
+      What is added is the part that was only ever in a README: a row of
+      clients with different permissions, so the boundary can be crossed rather
+      than described.
+    -->
+
+    <header class="top">
+      <div class="bar">
+        <span class="brand">
+          <!--
+            The mark: a page, and one line of it leaving. The same drawing is
+            favicon.svg, and `npm run check:mark` compares them, because "keep
+            two files in step by remembering" is not a plan.
+          -->
+          <svg width="30" height="30" viewBox="0 0 32 32" role="img" aria-label="Document OCR Service" fill="none">
+            <rect width="32" height="32" rx="7" fill="var(--logo-ground)" />
+            <rect x="8" y="7" width="11" height="18" rx="2.5" fill="var(--logo-mark)" opacity="0.55" />
+            <rect x="12" y="14" width="14" height="4.5" rx="2.25" fill="var(--logo-mark)" />
+          </svg>
+          <span class="wordmark">
+            <strong>Document OCR</strong>
+            <span id="whereItReads">reading the service…</span>
+          </span>
+        </span>
+
+        <p class="engines" id="engines"></p>
+      </div>
+    </header>
+
+    <main>
+      <!-- 1. Who you are. -->
+      <section class="card">
+        <h2>1 — Get a token</h2>
+        <p class="lede">
+          Client credentials, over <code>POST /oauth/token</code>. These five are in
+          the repository on purpose: a permission boundary you cannot stand on both
+          sides of is an assertion, not a demonstration.
+        </p>
+
+        <div class="clients" id="clients"></div>
+
+        <div class="row">
+          <label>
+            <span>Client</span>
+            <input id="clientId" type="text" autocomplete="off" value="reader-and-writer" />
+          </label>
+          <label>
+            <span>Secret</span>
+            <input id="clientSecret" type="password" autocomplete="off" value="demo-secret-both-1234" />
+          </label>
+          <button id="getToken" type="button" class="go">Get a token</button>
+        </div>
+
+        <p class="state" id="tokenState" data-state="none">No token yet.</p>
+      </section>
+
+      <!-- 2. What to read, and in which of the three ways. -->
+      <form class="card" id="readForm">
+        <h2>2 — Send a document</h2>
+        <p class="lede">
+          Three ways to ask, and they are the same work. Pick by how long you can
+          afford to wait and whether anybody is watching a screen.
+        </p>
+
+        <div class="row">
+          <!-- A styled label over a hidden input, rather than the native
+               control. The native one is drawn by the browser in the language
+               of the operating system, so an English page shows an Italian
+               button on an Italian machine — and its width is whatever the
+               platform decides. -->
+          <div class="grow file">
+            <span class="what">File</span>
+            <label class="pick">
+              <input id="document" name="document" type="file" accept="application/pdf,image/*" required />
+              <span class="button">Choose a file</span>
+              <span class="chosen" id="chosen">nothing chosen</span>
+            </label>
+          </div>
+
+          <label>
+            <span>Engine</span>
+            <select id="engine">
+              <option value="">whichever can</option>
+              <option value="text-layer">text-layer only</option>
+              <option value="mistral">mistral only</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="samples">
+          Or one of the samples:
+          <button type="button" class="link" data-sample="invoice.pdf">an invoice</button>
+          <button type="button" class="link" data-sample="letter.pdf">a delivery note</button>
+          <button type="button" class="link" data-sample="two-pages.pdf">two pages</button>
+          <button type="button" class="link" data-sample="scan.png">a page with no text in it</button>
+        </p>
+
+        <div class="ways">
+          <button type="submit" name="way" value="wait" class="go">Wait for it</button>
+          <button type="submit" name="way" value="live" class="go">Watch it work</button>
+          <button type="submit" name="way" value="job" class="go">Come back for it</button>
+        </div>
+      </form>
+
+      <!-- 3. What is happening. The signature of this page. -->
+      <section class="card console">
+        <h2>3 — What the service is saying</h2>
+
+        <div class="progress" aria-label="progress">
+          <div class="fill" id="progressFill"></div>
+        </div>
+
+        <pre class="transcript" id="transcript" aria-live="polite">Nothing sent yet.</pre>
+      </section>
+
+      <!-- 4 and 5. The two answers: the one a person reads, and the one a program does. -->
+      <div class="two">
+        <section class="card">
+          <h2>4 — The text</h2>
+          <pre class="text" id="text">Nothing yet.</pre>
+        </section>
+
+        <section class="card">
+          <h2>5 — The answer, as it came</h2>
+          <pre class="json" id="json">Nothing yet.</pre>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <span>A demonstration. Every document in <code>samples/</code> is invented.</span>
+      <span>Developed by Riccardo Sapuppo</span>
+    </footer>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

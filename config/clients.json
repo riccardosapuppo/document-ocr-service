@@ -1,0 +1,60 @@
+{
+  "_read_me": "Demonstration clients. Secrets are stored as SHA-256 hashes and the plain ones are in the README on purpose: this is a demonstration of a permission boundary, and a boundary you cannot stand on both sides of is an assertion rather than a demonstration. Generate a hash with: node tools/hash-secret.mjs",
+  "clients": [
+    {
+      "client_id": "reader-and-writer",
+      "_what_it_is_for": "the everyday caller: submits documents and collects results",
+      "client_secrets": [
+        "4bc0f456592b39759df41ec9b09e0da8fada9625d1491d6603bb121d9b704dba"
+      ],
+      "scope": "ocr:read ocr:write",
+      "enabled": true,
+      "token_ttl_seconds": 900,
+      "rate_limit_per_minute": 60
+    },
+    {
+      "client_id": "uploader",
+      "_what_it_is_for": "may submit and may NOT read back a result. A public-facing form is this one",
+      "client_secrets": [
+        "3777ec197682b97479d8474f28e93939c153f35a2f8d52b49e82643f69e3408c"
+      ],
+      "scope": "ocr:write",
+      "enabled": true,
+      "token_ttl_seconds": 900,
+      "rate_limit_per_minute": 30
+    },
+    {
+      "client_id": "collector",
+      "_what_it_is_for": "may read results and may not submit. A worker draining a queue is this one",
+      "client_secrets": [
+        "8b87de69395379abb0a39a1397e4de925753621cf4404e5a97e0b47a295d4627"
+      ],
+      "scope": "ocr:read",
+      "enabled": true,
+      "token_ttl_seconds": 900,
+      "rate_limit_per_minute": 120
+    },
+    {
+      "client_id": "impatient",
+      "_what_it_is_for": "three calls a minute, so the rate limit can be seen without waiting an hour",
+      "client_secrets": [
+        "9ac77a8289b95ed4c11d75451d7337ac629150226a44bc4a03d3f5de0a02cc70"
+      ],
+      "scope": "ocr:read ocr:write",
+      "enabled": true,
+      "token_ttl_seconds": 900,
+      "rate_limit_per_minute": 3
+    },
+    {
+      "client_id": "retired",
+      "_what_it_is_for": "switched off. Its secret is right and it still cannot get a token",
+      "client_secrets": [
+        "b37fa2793d4742a03275a33acf525c42247c78f352318445d4179df373c2c7ee"
+      ],
+      "scope": "ocr:read ocr:write",
+      "enabled": false,
+      "token_ttl_seconds": 900,
+      "rate_limit_per_minute": 60
+    }
+  ]
+}

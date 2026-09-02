@@ -1,0 +1,31 @@
+{
+  "name": "document-ocr-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An HTTP service that returns the text in an uploaded document, callable synchronously, as a stream, or as a job to poll.",
+  "author": "Riccardo Sapuppo",
+  "license": "MIT",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test",
+    "walkthrough": "node tools/walkthrough.mjs",
+    "check:screen": "node tools/through-the-screen.mjs",
+    "check:mark": "node tools/check-mark.mjs",
+    "samples": "node tools/make-samples.mjs",
+    "screenshots": "node tools/screenshots.mjs",
+    "build:binary": "node tools/build-binary.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.4"
+  },
+  "engines": {
+    "node": ">=20.11"
+  }
+}

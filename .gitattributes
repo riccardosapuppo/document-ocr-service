@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+# PDFs are binary. Git must not touch a byte of them: the samples are produced
+# by a real browser and the whole point of testing against them is that they are
+# what a real producer wrote.
+*.pdf binary
+*.png binary

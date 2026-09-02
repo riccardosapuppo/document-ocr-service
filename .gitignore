@@ -1,0 +1,6 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+config/clients.local.json

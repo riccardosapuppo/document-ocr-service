@@ -1,0 +1,80 @@
+name: build and check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Exactly the minimum the README claims. Raising it here without raising
+      # it there is the drift this job exists to catch.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11'
+          cache: npm
+
+      - run: npm ci
+
+      - name: The parts
+        run: npm test
+
+      - name: The header mark and the tab icon are one drawing
+        run: npm run check:mark
+
+      # The check that is not written behind the same door as the code. It
+      # needs the service running, so it is started here and stopped after.
+      - name: Start the service
+        run: |
+          OAUTH_JWT_SECRET=$(head -c 32 /dev/urandom | base64) \
+          CLIENTS_RELOAD_MS=1000 \
+          node src/index.js --port 3400 > service.log 2>&1 &
+          for try in $(seq 1 40); do
+            curl -sf http://127.0.0.1:3400/api/health > /dev/null && break
+            sleep 0.25
+          done
+          curl -sf http://127.0.0.1:3400/api/health
+
+      - name: Drive the whole service over HTTP
+        run: npm run walkthrough
+
+      - name: What the service said while it ran
+        if: always()
+        run: cat service.log
+
+      # The claim in the README about a Linux binary, tested rather than
+      # asserted. This is the platform it is claimed for.
+      - name: Build the single executable
+        run: npm run build:binary
+
+      - name: And check the binary actually serves
+        run: |
+          ./dist/document-ocr-service --port 3402 --clients ./config/clients.json > binary.log 2>&1 &
+          for try in $(seq 1 40); do
+            curl -sf http://127.0.0.1:3402/api/health > /dev/null && break
+            sleep 0.25
+          done
+          curl -sf http://127.0.0.1:3402/api/health
+          cat binary.log
+
+      # A service that reads somebody's documents should be able to say what it
+      # depends on in one line. Not a security control — an assertion about what
+      # this is, that fails loudly if it stops being true.
+      - name: Three runtime dependencies, and no more
+        run: |
+          node -e '
+            const held = Object.keys(require("./package.json").dependencies ?? {});
+            console.log("runtime dependencies:", held.join(", "));
+            const expected = ["express", "jsonwebtoken", "multer"];
+            const surprise = held.filter((one) => !expected.includes(one));
+            if (surprise.length) {
+              console.error("unexpected:", surprise.join(", "));
+              console.error("If that is deliberate, say so in the README and change this list.");
+              process.exit(1);
+            }
+          '

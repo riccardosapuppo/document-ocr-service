@@ -9,6 +9,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "build": "node tools/build-binary.mjs",
     "test": "node --test",
     "walkthrough": "node tools/walkthrough.mjs",
     "check:screen": "node tools/through-the-screen.mjs",

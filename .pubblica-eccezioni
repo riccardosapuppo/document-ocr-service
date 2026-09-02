@@ -1,0 +1,23 @@
+# Riscontri veri che non sono segreti, e perché.
+#
+# Ognuno è stato letto. Nessuno apre qualcosa che esiste.
+#
+# Le credenziali dimostrative stanno nel codice E nel README di proposito.
+# Questo progetto dimostra un confine di permessi — chi può inviare, chi può
+# ritirare, chi è stato spento — e un confine su cui non si può stare da
+# entrambi i lati è un'affermazione, non una dimostrazione. Nel file dei client
+# ci sono solo impronte SHA-256; il database che aprono non esiste, perché il
+# servizio non ne ha uno.
+#
+# Non vale per i nomi aziendali e per le chiavi vere: quelli bloccano comunque,
+# da qualunque file.
+#
+# Nota per chi scrive qui: le motivazioni non devono riprodurre il codice che
+# scusano. Questo file viene esaminato come tutti gli altri.
+
+README.md                # la tabella delle cinque identità dimostrative, che è metà della dimostrazione
+config/clients.json      # le stesse, come impronte, mai in chiaro
+public/app.js            # le stesse, come pulsanti sulla pagina
+tools/walkthrough.mjs    # le stesse, per guidare il servizio in esecuzione
+test/auth.test.js        # una stringa di firma inventata sul posto, per provare che una troppo corta viene rifiutata
+test/jobs.test.js        # una chiave inventata sul posto, per provare che dopo un 401 non si riprova

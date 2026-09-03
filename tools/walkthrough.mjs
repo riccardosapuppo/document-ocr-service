@@ -24,6 +24,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { matchesTheReadme } from './what-the-readme-claims.mjs';
+
 const BASE = process.argv[2] || process.env.OCR_URL || 'http://localhost:3400';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLES = path.join(here, '..', 'samples');
@@ -357,11 +359,30 @@ async function main() {
     edited.clients.find((one) => one.client_id === 'uploader').enabled = false;
     fs.writeFileSync(CLIENTS, JSON.stringify(edited, null, 2));
 
-    // The service re-reads on an interval; wait for one to pass.
+    /**
+     * Long enough for the interval the service actually has.
+     *
+     * This waited 21 seconds, and the default interval is 30 — so it passed in
+     * continuous integration, which starts the service with
+     * `CLIENTS_RELOAD_MS=1000`, and failed for anybody who ran the command the
+     * README tells them to run. The service was right every time; the check was
+     * measuring against a number only the CI file knew.
+     *
+     * It waits out the default now, and says what it is waiting for, because
+     * thirty-five silent seconds look like a hang.
+     */
     await new Promise((done) => setTimeout(done, 1500));
 
     let stillWorks = true;
-    for (let tries = 0; tries < 40 && stillWorks; tries += 1) {
+    let said = false;
+
+    for (let tries = 0; tries < 68 && stillWorks; tries += 1) {
+      if (tries === 8 && !said) {
+        said = true;
+        console.log('        (waiting for the client file to be re-read — up to 35s at the default');
+        console.log('         interval; CLIENTS_RELOAD_MS=1000 makes it immediate, as CI does)');
+      }
+
       const now = await token('uploader');
       stillWorks = now.status === 200;
       if (stillWorks) await new Promise((done) => setTimeout(done, 500));
@@ -378,18 +399,30 @@ async function main() {
     await new Promise((done) => setTimeout(done, 1500));
   }
 
+  // Same margin as above, and for the same reason: this side of the toggle has
+  // to outlast the default interval too, or the check that put a client back
+  // fails on the machine of anybody who did not set CLIENTS_RELOAD_MS.
   let restored = false;
-  for (let tries = 0; tries < 40 && !restored; tries += 1) {
+  for (let tries = 0; tries < 68 && !restored; tries += 1) {
     restored = (await token('uploader')).status === 200;
     if (!restored) await new Promise((done) => setTimeout(done, 500));
   }
   expect('and switching it back on lets it in again', restored);
 
   // ------------------------------------------------------------------ the end
+  //
+  // The README's own claim about this command, checked by this command. A
+  // number in a README is a claim about a program sitting right there and able
+  // to be asked; until this line existed nobody ever asked it, and a sibling
+  // project drifted from 86 to 92 without one red run.
+  console.log('');
+  if (!matchesTheReadme('npm run walkthrough', checks)) failures += 1;
+
   console.log('');
   if (failures > 0) {
     console.log(`${failures} of ${checks} checks failed.`);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   console.log(`All ${checks} checks passed.`);
 }

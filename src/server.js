@@ -377,12 +377,34 @@ export function buildService(settings) {
   // Nothing throws — the page is simply a 404 forever, on one platform.
   const here = path.dirname(fileURLToPath(import.meta.url));
 
-  api.use(express.static(path.join(here, '..', 'public'), { etag: false, maxAge: 0 }));
+  /**
+   * `etag: false` alone does not stop a browser serving yesterday's page.
+   *
+   * `lastModified` is a SEPARATE option and defaults to true, so every file
+   * still went out carrying a `Last-Modified`, every reload was a conditional
+   * request, and a browser is entitled to answer one from its own cache with a
+   * 304. That is the mechanism behind a stale screen after a rebuild — and the
+   * advice it produces is "press Ctrl+F5", which sends people looking at the
+   * server while the page is coming from their own browser.
+   *
+   * Nothing here is stored, and nothing is immutable either: these files carry
+   * no hash in their names, so immutable would mean a change that never
+   * arrives. `npm run check:serving` asserts it against the running service.
+   */
+  const never = {
+    etag: false,
+    lastModified: false,
+    setHeaders(response) {
+      response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    },
+  };
+
+  api.use(express.static(path.join(here, '..', 'public'), never));
 
   // Read-only, and only these three. `express.static` on a folder is a
   // directory of files anybody can fetch, so it points at the samples rather
   // than at anything a caller has uploaded.
-  api.use('/samples', express.static(path.join(here, '..', 'samples'), { maxAge: 0 }));
+  api.use('/samples', express.static(path.join(here, '..', 'samples'), never));
 
   api.use((req, res) => {
     res.status(404).json({

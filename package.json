@@ -13,6 +13,7 @@
     "test": "node --test",
     "walkthrough": "node tools/walkthrough.mjs",
     "check:screen": "node tools/through-the-screen.mjs",
+    "check:serving": "node tools/how-it-is-served.mjs",
     "check:mark": "node tools/check-mark.mjs",
     "samples": "node tools/make-samples.mjs",
     "screenshots": "node tools/screenshots.mjs",

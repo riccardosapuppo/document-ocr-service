@@ -8,6 +8,11 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # A job that hangs is worse than one that fails: it stays amber for six
+    # hours and nobody looks at it, while a red one sends an email. Learned
+    # from a Windows job that sat in_progress for two hours after every one
+    # of its checks had passed.
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +31,13 @@ jobs:
 
       - name: The header mark and the tab icon are one drawing
         run: npm run check:mark
+
+      - name: nobody can be served yesterday's page
+        # A caching header is right in the source and wrong in the response
+        # more often than anything else here: express.static's lastModified
+        # is a SEPARATE option from etag and defaults to true, so turning off
+        # only etag leaves the revalidation that serves a stale page.
+        run: npm run check:serving
 
       # The check that is not written behind the same door as the code. It
       # needs the service running, so it is started here and stopped after.

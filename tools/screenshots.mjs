@@ -15,7 +15,8 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 
-const BASE = process.env.OCR_URL || 'http://localhost:3400';
+import { startTheService } from './with-the-service.mjs';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DOCS = path.join(here, '..', 'docs');
 
@@ -29,6 +30,11 @@ try {
 }
 
 fs.mkdirSync(DOCS, { recursive: true });
+
+// Its own service, so the pictures in the README are always of THIS
+// commit -- not of whatever was left running on 3400.
+const service = await startTheService();
+const BASE = service.base;
 
 const browser = await chromium.launch({ channel: 'msedge' });
 const say = (name) => console.log(`  docs/${name}`);
@@ -122,4 +128,5 @@ try {
   process.exitCode = 1;
 } finally {
   await browser.close();
+  await service.stop();
 }

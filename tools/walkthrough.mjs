@@ -25,8 +25,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { matchesTheReadme } from './what-the-readme-claims.mjs';
+import { withTheService } from './with-the-service.mjs';
 
-const BASE = process.argv[2] || process.env.OCR_URL || 'http://localhost:3400';
+// Set by withTheService: either a service this started, or one somebody
+// pointed it at with --against. It used to default to localhost:3400 and
+// hope, which passed against whatever happened to be listening there.
+let BASE = '';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SAMPLES = path.join(here, '..', 'samples');
 const CLIENTS = path.join(here, '..', 'config', 'clients.json');
@@ -427,8 +431,10 @@ async function main() {
   console.log(`All ${checks} checks passed.`);
 }
 
-main().catch((error) => {
+withTheService(async (base) => {
+  BASE = base;
+  await main();
+}).catch((error) => {
   console.error(`\n${error.stack}`);
-  console.error(`\nIs the service running? ${BASE} did not behave.`);
   process.exit(1);
 });

@@ -229,8 +229,8 @@ the tests run without one.
 
 ```
 npm test               # 64 assertions over the parts
-npm run walkthrough    # 39 over HTTP, against the running service
-npm run check:screen   # 24 driving the page with a browser
+npm run walkthrough    # 39 over HTTP, against a service it starts itself
+npm run check:screen   # 24 driving the page with a browser, likewise
 npm run check:mark     # the header mark and the tab icon are one drawing
 npm run screenshots    # retakes the pictures above
 ```

@@ -37,7 +37,8 @@
 
 import { createRequire } from 'node:module';
 
-const BASE = process.env.OCR_URL || 'http://localhost:3400';
+import { startTheService } from './with-the-service.mjs';
+
 const show = process.argv.includes('--show');
 
 let chromium;
@@ -64,6 +65,12 @@ function expect(what, condition, detail) {
     if (detail) console.log(`        ${detail}`);
   }
 }
+
+// A service of its own, on a port nothing else uses. This used to expect
+// somebody to have started one -- which meant it could not run on a clean
+// machine, and passed against whatever was on 3400 when it could.
+const service = await startTheService();
+const BASE = service.base;
 
 const browser = await chromium.launch({ channel: 'msedge', headless: !show });
 const page = await browser.newPage({ viewport: { width: 1360, height: 1100 }, reducedMotion: 'reduce' });
@@ -291,4 +298,5 @@ try {
   process.exitCode = 1;
 } finally {
   await browser.close();
+  await service.stop();
 }

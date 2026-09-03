@@ -7,7 +7,7 @@ Three ways to ask for the same work — **wait for it**, **watch it happen**, or
 **come back for it** — behind OAuth2 client credentials with real scopes and a
 rate limit counted per caller.
 
-![The control panel: five demonstration clients, the three ways to send a document, and a live console showing the service answering step by step](docs/read.png)
+![The page after reading an invoice: a banner saying no API key is set and what that does not stop, a drop zone holding invoice.pdf, the engine chain showing text-layer read it in 3 ms, and the extracted text below](docs/read.png)
 
 ## The one decision worth arguing about
 
@@ -51,10 +51,21 @@ relative, and glyph widths — without which a table row arrives as
   runtime dependencies: Express, `jsonwebtoken`, `multer`.
 - **16 MB** of `node_modules`, measured with `du -sh`, and no network after
   `npm install`. It said "about 30" until somebody measured.
-- **A key is optional.** Without `MISTRAL_API_KEY` the service reads PDFs that
-  carry their text and refuses scans **with a reason**. Set it and it reads
-  those too.
+- **A key is optional, and the page proves it rather than promising it.**
+  Without `MISTRAL_API_KEY` the service reads any PDF that carries its own text
+  — which is most of them — and refuses a scan **with a reason and the name of
+  the variable that changes it**. The page says which of the two states it is in
+  before you press anything, so the refusal is expected rather than a surprise,
+  and `npm run check:screen` asserts both halves of that.
 - **To undo it:** delete the folder. Nothing is written outside it.
+
+![The page after a scan was sent with no key: the engine chain shows text-layer passing on a file it is not for and the pixel reader declining because MISTRAL_API_KEY is not set, under a line calling this the expected answer](docs/needs-a-key.png)
+
+That is what a refusal looks like here. Not a red error: the documented
+state of a service running without a key, said as such, with the one thing
+that changes it named in the sentence. The engine chain above it shows why —
+the cheap engine passed on a file it is not for, and the expensive one is not
+configured.
 
 The two browser-driven checks (`check:screen`, `screenshots`) want
 `playwright-core` on the path. They are checks, not dependencies, so they are
@@ -64,14 +75,35 @@ not installed here; they say so and stop rather than pretending to have passed.
 
 ```
 npm install
-npm start                       # http://127.0.0.1:3400
+npm start
 ```
 
-Then open <http://127.0.0.1:3400> and use the page: pick a client, get a token,
-send one of the samples, and try the three ways.
+That is all of it. The page opens by itself on <http://127.0.0.1:3400>, and the
+first thing you can do on it is **drop a PDF in and read it** — no key, no
+account, nothing to sign up for. Four invented documents are one click away if
+you have none to hand.
+
+The token is taken on arrival with the demonstration credentials, so
+authenticating is not in front of you. It is not hidden either: the request is
+in the transcript with all the others, and the whole permission boundary is a
+fold further down, where you can sign in as a client that will refuse you.
+
+> **This is the second version of that page.** The first opened with
+> *"1 — Get a token"*, which was the order the API is used in and the wrong
+> order for a page: somebody who arrived, dropped a PDF in and was told to
+> authenticate first read it as the service demanding a key it had not been
+> given. Which is the opposite of the thing this project is for. The API was
+> right the whole time — only the page was wrong, and the only way to check the
+> order of a page is to arrive at it, so now `npm run check:screen` does.
+
+The browser is not opened in CI, with no terminal attached, or when you say
+`--no-open` (or set `NO_OPEN=1`), and it says which of those happened. A
+launcher that blocks on a runner turns a green job into one that hangs for six
+hours and is quietly cancelled.
 
 ```
 npm start -- --port 3400 --clients ./config/clients.json --host 127.0.0.1
+npm start -- --no-open
 ```
 
 Localhost unless told otherwise. A service that reads documents somebody has
@@ -115,10 +147,11 @@ different processes with different exposure — a public-facing uploader that mu
 never be able to read back somebody else's result, and a worker that reads and
 never submits.
 
-Sign in as `uploader` on the page and try *Come back for it*. This is the
-demonstration, not a failure of it:
+Open **Who is asking** at the bottom of the page, pick `uploader`, and read a
+document with *take an id and come back for it*. This is the demonstration,
+not a failure of it:
 
-![The console showing a 403 telling the caller this needs ocr:read and that its token holds only ocr:write, and a 422 saying no engine could read a page with no text on it](docs/refusals.png)
+![The transcript showing a 403 telling the caller this needs ocr:read, and that its token holds only ocr:write](docs/refusals.png)
 
 ## The three ways
 
@@ -187,9 +220,9 @@ the tests run without one.
 ## Checking it
 
 ```
-npm test               # 58 assertions over the parts
+npm test               # 64 assertions over the parts
 npm run walkthrough    # 39 over HTTP, against the running service
-npm run check:screen   # drives the page with a browser
+npm run check:screen   # 24 driving the page with a browser
 npm run check:mark     # the header mark and the tab icon are one drawing
 npm run screenshots    # retakes the pictures above
 ```

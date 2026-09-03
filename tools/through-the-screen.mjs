@@ -7,10 +7,21 @@
  *
  * A third layer, and it is not the same claim as the other two. `npm test` says
  * the parts work; `npm run walkthrough` says the API behaves over HTTP; only
- * this says a person can pick a client, get a token, send a document and watch
- * it happen.
+ * this says a person can arrive, read a document, and see what happened.
  *
- * Two things live only here.
+ * ── The check this file exists for now ───────────────────────────────────────
+ *
+ * The first assertion below — **arriving and reading, having touched nothing
+ * else** — is here because of a real report. The page used to open with
+ * "1 — Get a token", and somebody who came to try it read that as the service
+ * asking for an API key it had not been given, which is the opposite of what
+ * this project demonstrates: it reads most PDFs with no account anywhere.
+ *
+ * Nothing in `npm test` or the walkthrough could have caught that. The API was
+ * right the whole time. What was wrong was the order of the page, and the only
+ * way to check the order of a page is to arrive at it.
+ *
+ * Two other things live only here.
  *
  * **The stream.** `POST /api/read/live` returns NDJSON, and every defect in
  * reading it is invisible from the server side: a chunk boundary lands wherever
@@ -40,8 +51,11 @@ try {
 }
 
 let failures = 0;
+let checks = 0;
 
 function expect(what, condition, detail) {
+  checks += 1;
+
   if (condition) {
     console.log(`  ok    ${what}`);
   } else {
@@ -52,7 +66,7 @@ function expect(what, condition, detail) {
 }
 
 const browser = await chromium.launch({ channel: 'msedge', headless: !show });
-const page = await browser.newPage({ viewport: { width: 1360, height: 1000 }, reducedMotion: 'reduce' });
+const page = await browser.newPage({ viewport: { width: 1360, height: 1100 }, reducedMotion: 'reduce' });
 
 /**
  * Anything the page THROWS is a failure, even when the screen still looks right.
@@ -76,20 +90,75 @@ page.on('console', (message) => {
 
 const transcript = () => page.textContent('#transcript');
 
+/** Sign in as one of the demonstration clients. The fold has to be open first. */
 async function useClient(id) {
+  await page.evaluate(() => {
+    document.getElementById('boundaryFold').open = true;
+  });
   await page.click(`[data-client="${id}"]`);
-  await page.click('#getToken');
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(800);
+}
+
+async function readIt(way = 'wait') {
+  await page.selectOption('#way', way);
+  await page.click('#readIt');
 }
 
 try {
   console.log(`Driving ${BASE} through the screen\n`);
 
   await page.goto(BASE, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(900);
 
-  // -------------------------------------------------------------- the shell
-  console.log('What the page says about the service');
+  // ---------------------------------------------- arriving, and just reading
+  //
+  // Before anything else, because it is what everybody else does first.
+  console.log('Arriving, and reading something, having touched nothing else');
+
+  expect(
+    'the token is taken on arrival, so nothing is in the way',
+    /ocr:read ocr:write/.test((await page.textContent('#tokenState')) ?? ''),
+    await page.textContent('#tokenState')
+  );
+
+  expect(
+    'and the page does not put authenticating in front of anybody',
+    !/1\s*—\s*Get a token/.test((await page.textContent('main')) ?? ''),
+    'a first step that says "get a token" reads as "this service wants a key"'
+  );
+
+  await page.click('[data-sample="invoice.pdf"]');
+  await page.waitForTimeout(700);
+
+  expect(
+    'a sample says which file it is, in the language of the page',
+    (await page.textContent('#chosen')) === 'invoice.pdf',
+    await page.textContent('#chosen')
+  );
+
+  await readIt('wait');
+  await page.waitForFunction(() => document.getElementById('text')?.textContent?.length > 100, { timeout: 20000 });
+
+  expect(
+    'a document is read with two clicks and nothing set up',
+    /Invoice 2026-0184/.test((await page.textContent('#text')) ?? ''),
+    'this is the whole claim of the project: no account, no key, it reads the text that is already there'
+  );
+
+  // --------------------------------------------------- saying what it can do
+  console.log('\nWhat the page says about the service');
+
+  const mode = (await page.textContent('#mode')) ?? '';
+  expect(
+    'it says up front whether a key is set, before anybody needs one',
+    /No API key is set/.test(mode) || /An API key is set/.test(mode),
+    mode.slice(0, 140)
+  );
+  expect(
+    'and, with no key, what that does and does not stop',
+    !/No API key is set/.test(mode) || (/carries its own text/.test(mode) && /MISTRAL_API_KEY/.test(mode)),
+    mode.slice(0, 240)
+  );
 
   expect(
     'it says what this copy can actually read',
@@ -105,32 +174,27 @@ try {
     'without a key the pixel engine is not available, and the page should say so before somebody needs it'
   );
 
-  // ------------------------------------------------------------- a token
-  console.log('\nGetting a token');
+  // ------------------------------------------------------------ the decision
+  console.log('\nThe decision, shown');
 
-  await useClient('reader-and-writer');
+  const chain = await page.locator('#chain li').allTextContents();
+  expect('the engine chain is drawn', chain.length >= 1, chain.join(' | '));
   expect(
-    'a good client gets one, and the page says what it may do',
-    /ocr:read ocr:write/.test((await page.textContent('#tokenState')) ?? ''),
-    await page.textContent('#tokenState')
+    'and the one that read it is marked as such',
+    (await page.locator('#chain li[data-outcome="read"] .who').first().textContent()) === 'text-layer',
+    chain.join(' | ')
+  );
+  expect(
+    'with a line saying what read it',
+    /Read by/.test((await page.textContent('#howSays')) ?? ''),
+    await page.textContent('#howSays')
   );
 
-  // ---------------------------------------------------------- the stream
+  // --------------------------------------------------------------- the stream
   console.log('\nWatching it work');
 
-  await page.click('[data-sample="invoice.pdf"]');
-  await page.waitForTimeout(700);
-
-  expect(
-    'a sample says which file it is, in the language of the page',
-    (await page.textContent('#chosen')) === 'invoice.pdf',
-    await page.textContent('#chosen')
-  );
-
-  await page.click('button[value="live"]');
-  await page.waitForFunction(() => document.getElementById('text')?.textContent?.length > 100, {
-    timeout: 20000,
-  });
+  await readIt('live');
+  await page.waitForFunction(() => document.getElementById('text')?.textContent?.length > 100, { timeout: 20000 });
   await page.waitForTimeout(400);
 
   const streamed = await transcript();
@@ -152,25 +216,45 @@ try {
   const bar = await page.getAttribute('#progressFill', 'style');
   expect('and the progress bar finished', /width:\s*100%/.test(bar ?? ''), bar);
 
-  // ------------------------------------------------------------ the other two
-  console.log('\nThe other two ways');
+  // ------------------------------------------------------------- the third way
+  console.log('\nThe third way');
 
-  await page.click('button[value="wait"]');
-  await page.waitForTimeout(1500);
-  expect('waiting for it gives the same words', /read by text-layer/.test(await transcript()));
+  await readIt('job');
+  await page.waitForFunction(() => /collected after/.test(document.getElementById('transcript')?.textContent ?? ''), {
+    timeout: 20000,
+  });
+  expect('taking an id and coming back gives the same words', /collected after/.test(await transcript()));
 
-  await page.click('button[value="job"]');
-  await page.waitForFunction(
-    () => /collected after/.test(document.getElementById('transcript')?.textContent ?? ''),
-    { timeout: 20000 }
+  // -------------------------------------------- the scan, which is not a fault
+  console.log('\nA page with no text in it');
+
+  await page.click('[data-sample="scan.png"]');
+  await page.waitForTimeout(700);
+  await readIt('wait');
+  await page.waitForTimeout(2500);
+
+  const noText = await transcript();
+  expect(
+    'it is refused with a reason and the variable that changes it',
+    /422/.test(noText) && /MISTRAL_API_KEY/.test(noText),
+    noText.split('\n').slice(-4).join(' / ')
   );
-  expect('and so does coming back for it', /collected after/.test(await transcript()));
 
-  // ------------------------------------------------------ what must not work
+  const howSays = (await page.textContent('#howSays')) ?? '';
+  expect(
+    'and the page calls it the EXPECTED answer rather than a breakage',
+    /expected answer/i.test(howSays) && /MISTRAL_API_KEY/.test(howSays),
+    'a service with no key refusing a scan is doing exactly what it says it does; showing that as an ' +
+      'error teaches the visitor the project is broken'
+  );
+
+  // -------------------------------------------------------- what must not work
   console.log('\nThe refusals, which are the point of the scopes');
 
   await useClient('uploader');
-  await page.click('button[value="job"]');
+  await page.click('[data-sample="invoice.pdf"]');
+  await page.waitForTimeout(600);
+  await readIt('job');
   await page.waitForTimeout(2500);
 
   const refused = await transcript();
@@ -192,32 +276,15 @@ try {
     await page.textContent('#tokenState')
   );
 
-  await useClient('reader-and-writer');
-  await page.click('[data-sample="scan.png"]');
-  await page.waitForTimeout(700);
-  await page.click('button[value="wait"]');
-  await page.waitForTimeout(2000);
-
-  const noText = await transcript();
-  expect(
-    'a page with no text in it is refused with a reason, not answered with nothing',
-    /422/.test(noText) && /MISTRAL_API_KEY/.test(noText),
-    noText.split('\n').slice(-4).join(' / ')
-  );
-
-  // ------------------------------------------------------------ and quietly
-  expect(
-    'nothing on the page threw along the way',
-    thrown.length === 0,
-    thrown.join(' | ')
-  );
+  // -------------------------------------------------------------- and quietly
+  expect('nothing on the page threw along the way', thrown.length === 0, thrown.join(' | '));
 
   console.log('');
   if (failures > 0) {
-    console.log(`${failures} checks failed.`);
+    console.log(`${failures} of ${checks} checks failed.`);
     process.exitCode = 1;
   } else {
-    console.log('Somebody can hold this service in their hands, refusals included.');
+    console.log(`${checks} checks: somebody can arrive, read a document, and see why — refusals included.`);
   }
 } catch (error) {
   console.error(`\nThe journey stopped: ${error.message.split('\n')[0]}`);

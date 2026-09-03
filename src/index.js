@@ -20,6 +20,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { buildService } from './server.js';
+import { openInABrowser } from './open-a-browser.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -93,6 +94,11 @@ const server = api.listen(port, host, () => {
       to_enable: 'set MISTRAL_API_KEY',
     });
   }
+
+  // The page, in front of whoever started this. Never in CI, never without a
+  // terminal, and never when told not to — see `open-a-browser.js`.
+  const browser = openInABrowser(`http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}/`);
+  log('info', browser.opened ? 'the page is open' : 'the page was not opened', { why: browser.why });
 });
 
 /**

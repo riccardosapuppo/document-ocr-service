@@ -12,18 +12,26 @@
 
   <body>
     <!--
-      The page a service like this needs, which is not a product page.
+      The page a service like this needs.
 
-      Its job is to let somebody hold the API in their hands for five minutes:
-      get a token, send a document, watch the three ways differ, and run into
-      the refusals on purpose. The original had exactly this shape — credentials
-      at the top, the upload under them, progress, then the text and the raw
-      JSON — and the shape is right, because it is the order the questions are
-      asked in.
+      An earlier version of it opened with "1 — Get a token". That was the order
+      the API is used in, and the wrong order for a page: somebody who arrives,
+      drops a PDF in and is told to authenticate first concludes the service
+      wants a key it has not been given — which is the opposite of what this
+      project is about. It reads most PDFs with no account anywhere.
 
-      What is added is the part that was only ever in a README: a row of
-      clients with different permissions, so the boundary can be crossed rather
-      than described.
+      So the order here is what the visitor wants to know, not what the client
+      has to do:
+
+        read something          -- and it works, immediately, with no setup
+        how it was read         -- which engine, and what the others said
+        the text                -- the thing they came for
+        the machinery           -- tokens, scopes, limits: below, and openable
+
+      The token is still fetched over `POST /oauth/token` with the credentials
+      that are in the repository. It happens on load instead of being a step,
+      and the request is in the transcript like every other one, so nothing is
+      hidden -- it is only no longer in the way.
     -->
 
     <header class="top">
@@ -49,14 +57,125 @@
       </div>
     </header>
 
+    <!--
+      What this service can do right now, and what it would take to do more.
+
+      Said once, at the top, and permanently -- not as an error after somebody
+      has already tried. Without a key it reads PDFs that carry their text,
+      which is most of them; with one it also reads pixels. Both of those are
+      normal states, and a page that only mentions the key at the moment of
+      failure teaches the visitor that the failure was unexpected.
+    -->
+    <p class="mode" id="mode" data-key="unknown">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="modeSays">asking the service what it can read…</span>
+    </p>
+
     <main>
-      <!-- 1. Who you are. -->
-      <section class="card">
-        <h2>1 — Get a token</h2>
+      <!-- 1. The thing you came to do. -->
+      <form class="card first" id="readForm">
+        <h2>Read a document</h2>
         <p class="lede">
-          Client credentials, over <code>POST /oauth/token</code>. These five are in
-          the repository on purpose: a permission boundary you cannot stand on both
-          sides of is an assertion, not a demonstration.
+          Drop a PDF here, or take one of the four below. Nothing needs setting up:
+          a PDF written by a word processor, a browser or an accounting package
+          already contains its text, and that is what gets read.
+        </p>
+
+        <!--
+          A styled label over a hidden input, rather than the native control.
+          The native one is drawn by the browser in the language of the
+          operating system, so an English page shows an Italian button on an
+          Italian machine — and its width is whatever the platform decides.
+        -->
+        <label class="drop" id="drop">
+          <input id="document" name="document" type="file" accept="application/pdf,image/*" required />
+          <span class="drop-icon" aria-hidden="true">
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+              <rect x="7" y="4" width="14" height="22" rx="2.5" fill="var(--accent)" opacity="0.28" />
+              <rect x="12" y="13" width="14" height="4.5" rx="2.25" fill="var(--accent)" />
+            </svg>
+          </span>
+          <span class="drop-say">
+            <strong>Drop a document here</strong>
+            <span class="chosen" id="chosen">or click to choose one</span>
+          </span>
+        </label>
+
+        <p class="samples">
+          Four invented ones:
+          <button type="button" class="link" data-sample="invoice.pdf">an invoice</button>
+          <button type="button" class="link" data-sample="letter.pdf">a delivery note</button>
+          <button type="button" class="link" data-sample="two-pages.pdf">two pages</button>
+          <button type="button" class="link" data-sample="scan.png">a scan, with no text in it</button>
+        </p>
+
+        <div class="go-row">
+          <button type="submit" class="go big" id="readIt">Read it</button>
+
+          <!--
+            The three deliveries are one choice rather than three buttons of
+            equal weight. They are the same work: what differs is who is waiting
+            and for how long, so that is what the labels say.
+          -->
+          <label class="how">
+            <span>and</span>
+            <select id="way">
+              <option value="wait">wait for the answer</option>
+              <option value="live">watch it work, step by step</option>
+              <option value="job">take an id and come back for it</option>
+            </select>
+          </label>
+
+          <label class="how">
+            <span>using</span>
+            <select id="engine">
+              <option value="">whichever engine can</option>
+              <option value="text-layer">the text layer only</option>
+              <option value="mistral">the pixel reader only</option>
+            </select>
+          </label>
+        </div>
+      </form>
+
+      <!-- 2. The signature of this page: the decision, shown. -->
+      <section class="card" id="howCard" hidden>
+        <h2>How it was read</h2>
+        <p class="lede" id="howSays"></p>
+
+        <!--
+          The engines in the order they are tried, each with what it said. This
+          is the argument the project makes, drawn: the cheap one is asked
+          first, and the expensive one only sees what the cheap one could not
+          do. When the second is not configured, this is where that shows up as
+          a fact rather than as an error.
+        -->
+        <ol class="chain" id="chain"></ol>
+      </section>
+
+      <!-- 3. The thing they came for. -->
+      <section class="card" id="textCard" hidden>
+        <h2>The text</h2>
+        <pre class="text" id="text">Nothing yet.</pre>
+      </section>
+
+      <!-- 4. The machinery. Below, and openable. -->
+      <details class="card fold" id="boundaryFold">
+        <summary>
+          <h2>Who is asking — tokens, scopes and limits</h2>
+          <span class="summary-say" id="whoNow">signed in automatically</span>
+        </summary>
+
+        <p class="lede">
+          Every request above carries a token from <code>POST /oauth/token</code>,
+          taken on load with the first of these. They are in the repository on
+          purpose: a permission boundary you cannot stand on both sides of is an
+          assertion rather than a demonstration.
+        </p>
+
+        <p class="lede">
+          Pick another and read a document again. <strong>Three of them will
+          refuse you</strong>, each for its own reason, and the refusal is the
+          point.
         </p>
 
         <div class="clients" id="clients"></div>
@@ -70,83 +189,28 @@
             <span>Secret</span>
             <input id="clientSecret" type="password" autocomplete="off" value="demo-secret-both-1234" />
           </label>
-          <button id="getToken" type="button" class="go">Get a token</button>
+          <button id="getToken" type="button" class="go">Sign in as this one</button>
         </div>
 
         <p class="state" id="tokenState" data-state="none">No token yet.</p>
-      </section>
+      </details>
 
-      <!-- 2. What to read, and in which of the three ways. -->
-      <form class="card" id="readForm">
-        <h2>2 — Send a document</h2>
-        <p class="lede">
-          Three ways to ask, and they are the same work. Pick by how long you can
-          afford to wait and whether anybody is watching a screen.
-        </p>
-
-        <div class="row">
-          <!-- A styled label over a hidden input, rather than the native
-               control. The native one is drawn by the browser in the language
-               of the operating system, so an English page shows an Italian
-               button on an Italian machine — and its width is whatever the
-               platform decides. -->
-          <div class="grow file">
-            <span class="what">File</span>
-            <label class="pick">
-              <input id="document" name="document" type="file" accept="application/pdf,image/*" required />
-              <span class="button">Choose a file</span>
-              <span class="chosen" id="chosen">nothing chosen</span>
-            </label>
-          </div>
-
-          <label>
-            <span>Engine</span>
-            <select id="engine">
-              <option value="">whichever can</option>
-              <option value="text-layer">text-layer only</option>
-              <option value="mistral">mistral only</option>
-            </select>
-          </label>
-        </div>
-
-        <p class="samples">
-          Or one of the samples:
-          <button type="button" class="link" data-sample="invoice.pdf">an invoice</button>
-          <button type="button" class="link" data-sample="letter.pdf">a delivery note</button>
-          <button type="button" class="link" data-sample="two-pages.pdf">two pages</button>
-          <button type="button" class="link" data-sample="scan.png">a page with no text in it</button>
-        </p>
-
-        <div class="ways">
-          <button type="submit" name="way" value="wait" class="go">Wait for it</button>
-          <button type="submit" name="way" value="live" class="go">Watch it work</button>
-          <button type="submit" name="way" value="job" class="go">Come back for it</button>
-        </div>
-      </form>
-
-      <!-- 3. What is happening. The signature of this page. -->
-      <section class="card console">
-        <h2>3 — What the service is saying</h2>
+      <!-- 5. What actually went over the wire. -->
+      <details class="card fold console" id="wireFold">
+        <summary>
+          <h2>What went over the wire</h2>
+          <span class="summary-say" id="wireSay">nothing sent yet</span>
+        </summary>
 
         <div class="progress" aria-label="progress">
           <div class="fill" id="progressFill"></div>
         </div>
 
         <pre class="transcript" id="transcript" aria-live="polite">Nothing sent yet.</pre>
-      </section>
 
-      <!-- 4 and 5. The two answers: the one a person reads, and the one a program does. -->
-      <div class="two">
-        <section class="card">
-          <h2>4 — The text</h2>
-          <pre class="text" id="text">Nothing yet.</pre>
-        </section>
-
-        <section class="card">
-          <h2>5 — The answer, as it came</h2>
-          <pre class="json" id="json">Nothing yet.</pre>
-        </section>
-      </div>
+        <h3>The answer, as it came</h3>
+        <pre class="json" id="json">Nothing yet.</pre>
+      </details>
     </main>
 
     <footer>

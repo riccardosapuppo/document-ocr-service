@@ -7,8 +7,21 @@
  * claim the service makes — that any HTTP client can use it — and a page that
  * needed a framework to talk to it would be quietly arguing the opposite.
  *
- * The streaming reader below is the part worth reading. It is nine lines, and
- * they are the whole client side of `POST /api/read/live`.
+ * ── What changed, and why ────────────────────────────────────────────────────
+ *
+ * The first version made getting a token step one. Somebody who arrived, dropped
+ * a PDF in and was told to authenticate first read that as "it wants a key I do
+ * not have" — and left, having learnt the opposite of what the project shows,
+ * which is that most PDFs are read here with no account anywhere.
+ *
+ * So the token is taken on load, with the credentials that are in the
+ * repository anyway. Nothing is hidden by that: the request appears in the
+ * transcript like every other one, and the whole of the permission machinery is
+ * still on the page, one fold down, where it can be played with on purpose
+ * rather than tripped over.
+ *
+ * The streaming reader below is still the part worth reading. It is nine lines,
+ * and they are the whole client side of `POST /api/read/live`.
  */
 
 /**
@@ -37,13 +50,6 @@ if ('serviceWorker' in navigator) {
 
 const $ = (id) => document.getElementById(id);
 
-/** The chosen file, named where somebody can see it. */
-function chose(name) {
-  const el = $('chosen');
-  el.textContent = name ?? 'nothing chosen';
-  el.dataset.chosen = name ? 'yes' : 'no';
-}
-
 /** The demonstration clients, and what each one is for. */
 const CLIENTS = [
   ['reader-and-writer', 'demo-secret-both-1234', 'submits and collects', 'ocr:read ocr:write'],
@@ -54,12 +60,54 @@ const CLIENTS = [
 ];
 
 let token = null;
+let readsPixels = false;
 
-document.getElementById('document').addEventListener('change', (event) => {
+// ------------------------------------------------------------------ the file
+
+/** The chosen file, named where somebody can see it. */
+function chose(name) {
+  const el = $('chosen');
+  el.textContent = name ?? 'or click to choose one';
+  el.dataset.chosen = name ? 'yes' : 'no';
+  $('drop').dataset.chosen = name ? 'yes' : 'no';
+}
+
+$('document').addEventListener('change', (event) => {
   chose(event.target.files?.[0]?.name ?? null);
 });
 
-// ------------------------------------------------------------------ the shell
+/**
+ * Dropping a file on the label.
+ *
+ * `dragover` has to be cancelled or the browser does its own thing with the
+ * file, which is to navigate away from the page and open it — losing everything
+ * on screen, in a way that looks like a crash.
+ */
+for (const kind of ['dragenter', 'dragover']) {
+  $('drop').addEventListener(kind, (event) => {
+    event.preventDefault();
+    $('drop').dataset.over = 'yes';
+  });
+}
+
+for (const kind of ['dragleave', 'drop']) {
+  $('drop').addEventListener(kind, () => {
+    $('drop').dataset.over = 'no';
+  });
+}
+
+$('drop').addEventListener('drop', (event) => {
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (!file) return;
+
+  const held = new DataTransfer();
+  held.items.add(file);
+  $('document').files = held.files;
+  chose(file.name);
+});
+
+// ----------------------------------------------------------------- the shell
 
 for (const [id, secret, what, scope] of CLIENTS) {
   const button = document.createElement('button');
@@ -72,23 +120,38 @@ for (const [id, secret, what, scope] of CLIENTS) {
     $('clientSecret').value = secret;
     for (const other of document.querySelectorAll('.client')) other.classList.remove('picked');
     button.classList.add('picked');
+    void signIn();
   });
   $('clients').append(button);
 }
 
 document.querySelector('.client')?.classList.add('picked');
 
+/**
+ * What this service can read at all, said once and permanently.
+ *
+ * Not as an error after somebody has already tried. Both states are normal, and
+ * a page that mentions the key only at the moment of refusal teaches its
+ * visitor that the refusal was a fault.
+ */
 fetch('/api/health')
   .then((response) => response.json())
   .then((health) => {
-    $('whereItReads').textContent = health.reads_pixels
-      ? 'text layers and pixels'
-      : 'text layers only';
+    readsPixels = Boolean(health.reads_pixels);
+
+    $('whereItReads').textContent = readsPixels ? 'text layers and pixels' : 'text layers only';
+
+    $('mode').dataset.key = readsPixels ? 'set' : 'unset';
+    $('modeSays').innerHTML = readsPixels
+      ? 'An API key is set, so this reads <strong>both</strong> the text inside a PDF and the pixels of a scan.'
+      : 'No API key is set, and it does not need one: this reads <strong>any PDF that carries its own text</strong>, ' +
+        'which is most of them. Only a scan or a photograph will be refused — it has no text to carry — and the ' +
+        'refusal says so and names the one thing that changes it, <code>MISTRAL_API_KEY</code>.';
 
     $('engines').innerHTML = health.engines
       .map(
         (engine) =>
-          `<span class="engine" data-ready="${engine.needs === 'nothing' || health.reads_pixels}">${engine.name}<em>${
+          `<span class="engine" data-ready="${engine.needs === 'nothing' || readsPixels}">${engine.name}<em>${
             engine.needs === 'nothing' ? 'needs nothing' : `needs ${engine.needs}`
           }</em></span>`
       )
@@ -96,37 +159,59 @@ fetch('/api/health')
   })
   .catch(() => {
     $('whereItReads').textContent = 'the service is not answering';
+    $('modeSays').textContent = 'The service is not answering. Is it still running?';
   });
 
 // ------------------------------------------------------------------- a token
 
-$('getToken').addEventListener('click', async () => {
-  say('POST /oauth/token', 'sent');
+/**
+ * Signs in with whichever client is in the boxes. Called on load, and again
+ * whenever somebody picks a different one.
+ */
+async function signIn() {
+  const who = $('clientId').value;
+  say(`POST /oauth/token as ${who}`, 'sent');
 
-  const response = await fetch('/oauth/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_id: $('clientId').value,
-      client_secret: $('clientSecret').value,
-    }),
-  });
+  try {
+    const response = await fetch('/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'client_credentials',
+        client_id: who,
+        client_secret: $('clientSecret').value,
+      }),
+    });
 
-  const body = await response.json();
-  show(body);
+    const body = await response.json();
+    show(body);
 
-  if (!response.ok) {
+    if (!response.ok) {
+      token = null;
+      state('none', `${response.status} — ${body.error_description ?? body.error}`);
+      summary('whoNow', `${who} was refused a token`);
+      say(`refused: ${body.error}`, 'bad');
+      return false;
+    }
+
+    token = body.access_token;
+    state('held', `${who} · ${body.scope} · ${body.expires_in}s`);
+    summary('whoNow', `signed in as ${who} · ${body.scope}`);
+    say(`token for ${who}, scope ${body.scope}`, 'good');
+    return true;
+  } catch {
     token = null;
-    state('none', `${response.status} — ${body.error_description ?? body.error}`);
-    say(`refused: ${body.error}`, 'bad');
-    return;
+    summary('whoNow', 'the service is not answering');
+    say('the service is not answering', 'bad');
+    return false;
   }
+}
 
-  token = body.access_token;
-  state('held', `${$('clientId').value} · ${body.scope} · ${body.expires_in}s`);
-  say(`token for ${$('clientId').value}, scope ${body.scope}`, 'good');
-});
+$('getToken').addEventListener('click', () => void signIn());
+
+// Signed in before anybody asks, so the first thing on the page is the thing
+// the page is about.
+void signIn();
 
 // ------------------------------------------------------------- the samples
 
@@ -144,7 +229,7 @@ for (const button of document.querySelectorAll('[data-sample]')) {
     $('document').files = held.files;
 
     chose(name);
-    say(`${name} ready — now choose one of the three ways`, 'good');
+    say(`${name} ready`, 'good');
   });
 }
 
@@ -153,19 +238,23 @@ for (const button of document.querySelectorAll('[data-sample]')) {
 $('readForm').addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  const way = event.submitter?.value ?? 'wait';
   const file = $('document').files?.[0];
+  if (!file) return chose(null) ?? say('choose a document first', 'bad');
 
-  if (!file) return say('choose a file first', 'bad');
-  if (!token) return say('get a token first — the API will refuse this without one', 'bad');
+  // A missing token is fixed rather than complained about. Somebody who has
+  // never opened the fold below should not be told about scopes.
+  if (!token && !(await signIn())) return;
 
   const form = new FormData();
   form.set('document', file);
   if ($('engine').value) form.set('engine', $('engine').value);
 
   $('text').textContent = '';
+  $('textCard').hidden = true;
+  $('howCard').hidden = true;
   progress(0);
 
+  const way = $('way').value;
   if (way === 'wait') return waitForIt(form);
   if (way === 'live') return watchItWork(form);
   return comeBackForIt(form);
@@ -188,7 +277,7 @@ async function waitForIt(form) {
 
   if (!response.ok) return refused(response, body);
 
-  $('text').textContent = body.text;
+  arrived(body);
   say(`read by ${body.engine} in ${body.took_ms} ms — ${body.characters} characters`, 'good');
 }
 
@@ -244,14 +333,14 @@ function onEvent(event) {
   if (event.type === 'result') {
     progress(1);
     show(event);
-    $('text').textContent = event.text;
+    arrived(event);
     return say(`read by ${event.engine} in ${event.took_ms} ms`, 'good');
   }
 
   progress(1);
   show(event);
+  couldNotRead(event);
   say(`stopped: ${event.error}`, 'bad');
-  for (const tried of event.tried ?? []) say(`  ${tried.engine}: ${tried.outcome}`, 'bad');
 }
 
 /** 3. The one for work that takes a while: an id, and come back. */
@@ -291,17 +380,87 @@ async function comeBackForIt(form) {
 
     if (job.state === 'done') {
       show(job);
-      $('text').textContent = job.result.text;
+      arrived(job.result);
       return say(`collected after ${asked + 1} ${asked === 0 ? 'ask' : 'asks'}`, 'good');
     }
 
     if (job.state === 'failed') {
       show(job);
+      couldNotRead(job.problem ?? {});
       return say(`stopped: ${job.problem?.error}`, 'bad');
     }
   }
 
   say('gave up asking', 'bad');
+}
+
+// ------------------------------------------------------- showing the outcome
+
+/** It was read. Show by what, and show the text. */
+function arrived(body) {
+  $('text').textContent = body.text ?? '';
+  $('textCard').hidden = false;
+
+  const pages = body.pages ? `${body.pages} page${body.pages === 1 ? '' : 's'}` : null;
+
+  saidHow(
+    `Read by <strong>${body.engine}</strong>${pages ? `, ${pages}` : ''}${
+      body.took_ms === undefined ? '' : `, in ${body.took_ms} ms`
+    }.`,
+    body.tried ?? [{ engine: body.engine, outcome: 'read it' }]
+  );
+}
+
+/**
+ * It could not be read, which for a scan without a key is not a fault.
+ *
+ * The distinction matters more than it looks. "No engine could read this
+ * document" beside a red mark reads as breakage. What actually happened is that
+ * the cheap engine correctly declined a file it is not for, and the expensive
+ * one is not configured — which is the documented state of a service running
+ * without a key, and the page said so at the top before anybody pressed
+ * anything.
+ */
+function couldNotRead(body) {
+  const tried = body.tried ?? [];
+  const wantsAKey = tried.some((one) => /MISTRAL_API_KEY/.test(one.outcome ?? ''));
+
+  $('textCard').hidden = true;
+
+  saidHow(
+    wantsAKey
+      ? 'Nothing here to read without an API key. <strong>This is the expected answer</strong>: the file has no ' +
+          'text layer, so it needs the engine that reads pixels, and that one is not configured. Set ' +
+          '<code>MISTRAL_API_KEY</code> and this same file comes back as text.'
+      : `Not read. <strong>${body.error ?? 'no engine could read this document'}</strong>`,
+    tried,
+    wantsAKey ? 'needs-a-key' : 'bad'
+  );
+}
+
+/**
+ * The engine chain: what was tried, in order, and what each one said.
+ *
+ * This is the argument of the whole project drawn in six lines of DOM. The
+ * cheap engine is asked first and the expensive one only ever sees what the
+ * cheap one could not do — which is invisible in a result and obvious here.
+ */
+function saidHow(lede, tried, tone = 'good') {
+  $('howCard').hidden = false;
+  $('howCard').dataset.tone = tone;
+  $('howSays').innerHTML = lede;
+
+  $('chain').innerHTML = tried
+    .map((one) => {
+      const read = /read it/i.test(one.outcome ?? '');
+      const notForIt = /not for this kind of file/i.test(one.outcome ?? '');
+
+      return `<li data-outcome="${read ? 'read' : notForIt ? 'passed' : 'declined'}">
+        <span class="who">${one.engine}</span>
+        <span class="said">${one.outcome ?? ''}</span>
+      </li>`;
+    })
+    .join('');
 }
 
 function refused(response, body) {
@@ -311,6 +470,19 @@ function refused(response, body) {
   if (body.you_have) say(`  this token holds: ${body.you_have.join(' ') || 'nothing'}`, 'bad');
   if (body.retry_after_seconds) say(`  try again in ${body.retry_after_seconds}s`, 'bad');
   for (const tried of body.tried ?? []) say(`  ${tried.engine}: ${tried.outcome}`, 'bad');
+
+  if (body.tried) return couldNotRead(body);
+
+  // A refusal by the boundary rather than by the engines: that is what the fold
+  // below is about, so it opens itself rather than leaving somebody wondering
+  // where the explanation went.
+  $('howCard').hidden = false;
+  $('howCard').dataset.tone = 'bad';
+  $('howSays').innerHTML =
+    `<strong>${response.status} — ${body.error_description ?? body.error}</strong>. ` +
+    'This is the permission boundary, not the reader. What each client may do is in the fold below.';
+  $('chain').innerHTML = '';
+  $('boundaryFold').open = true;
 }
 
 // ------------------------------------------------------------------ the panel
@@ -329,6 +501,8 @@ function say(line, kind = '') {
   row.textContent = `${at}  ${line}`;
   el.append(row, '\n');
   el.scrollTop = el.scrollHeight;
+
+  summary('wireSay', line);
 }
 
 function progress(fraction) {
@@ -343,4 +517,10 @@ function state(which, words) {
   const el = $('tokenState');
   el.dataset.state = which;
   el.textContent = words;
+}
+
+/** The one line a closed fold shows, so it is never a box with no news in it. */
+function summary(id, words) {
+  const el = $(id);
+  if (el) el.textContent = words;
 }

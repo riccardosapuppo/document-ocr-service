@@ -569,3 +569,193 @@ label.pick:has(input:focus-visible) {
 .chosen[data-chosen='yes'] {
   color: var(--ink);
 }
+
+/* ===========================================================================
+ * The reordered page.
+ *
+ * Everything below serves one decision: the thing a visitor came to do is the
+ * first thing on the screen, and the machinery is underneath it in folds. What
+ * used to be "1 — Get a token" is now the fourth section and opens on its own
+ * when it is the reason something was refused.
+ * ======================================================================== */
+
+:root {
+  /* Amber, and it means exactly one thing on this page: this would need the
+   * engine that costs money. Never used for an error, because "no key" is not
+   * an error — it is the documented state of a service running without one. */
+  --warn: #8a5a00;
+  --warn-soft: #fdf3e0;
+  --warn-line: #f0d9a8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --warn: #e8b665;
+    --warn-soft: #2c2415;
+    --warn-line: #4a3a1c;
+  }
+}
+
+/* ------------------------------------------------------ what it can read */
+
+.mode {
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  margin: 0;
+  padding: 0.85rem clamp(1rem, 4vw, 2.4rem);
+  border-bottom: 1px solid var(--line);
+  background: var(--raised);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.mode .dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--ink-faint);
+  transform: translateY(-0.1em);
+}
+
+.mode[data-key='unset'] { background: var(--warn-soft); border-bottom-color: var(--warn-line); }
+.mode[data-key='unset'] .dot { background: var(--warn); }
+.mode[data-key='set'] .dot { background: var(--accent); }
+.mode strong { color: var(--ink); font-weight: 620; }
+.mode code { font-family: var(--mono); font-size: 0.85em; }
+
+/* --------------------------------------------------------- the drop zone */
+
+.card.first { border-color: var(--accent-line); }
+
+.drop {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin: 1rem 0 0;
+  padding: 1.4rem 1.3rem;
+  border: 2px dashed var(--accent-line);
+  border-radius: 8px;
+  background: var(--raised);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.drop input[type='file'] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drop:hover,
+.drop[data-over='yes'] { background: var(--accent-soft); border-color: var(--accent); }
+.drop[data-chosen='yes'] { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.drop-icon { flex: none; display: flex; }
+.drop-say { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.drop-say strong { font-size: 1.02rem; color: var(--ink); }
+.drop-say .chosen { font-size: 0.86rem; color: var(--ink-faint); overflow-wrap: anywhere; }
+.drop-say .chosen[data-chosen='yes'] { color: var(--accent-ink); font-family: var(--mono); font-size: 0.82rem; }
+
+/* -------------------------------------------------------- the one button */
+
+.go-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1rem;
+  align-items: center;
+  margin-top: 1.1rem;
+}
+
+.go.big { font-size: 1rem; padding: 0.75rem 1.5rem; }
+
+.how { display: flex; gap: 0.45rem; align-items: center; font-size: 0.86rem; color: var(--ink-faint); }
+.how span { white-space: nowrap; }
+.how select { font-size: 0.86rem; padding: 0.4rem 0.5rem; }
+
+/* ------------------------------------------------------- the engine chain */
+
+.chain { list-style: none; margin: 0.9rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+
+.chain li {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.75rem;
+  border-radius: 5px;
+  border-left: 3px solid var(--line);
+  background: var(--raised);
+  font-size: 0.87rem;
+}
+
+.chain .who { font-family: var(--mono); font-size: 0.82rem; color: var(--ink); min-width: 8rem; }
+.chain .said { color: var(--ink-soft); }
+
+.chain li[data-outcome='read'] { border-left-color: var(--accent); background: var(--accent-soft); }
+.chain li[data-outcome='read'] .who { color: var(--accent-ink); font-weight: 600; }
+.chain li[data-outcome='passed'] { opacity: 0.66; }
+.chain li[data-outcome='declined'] { border-left-color: var(--warn-line); background: var(--warn-soft); }
+.chain li[data-outcome='declined'] .who { color: var(--warn); }
+
+#howCard[data-tone='needs-a-key'] { border-color: var(--warn-line); }
+#howCard[data-tone='needs-a-key'] #howSays strong { color: var(--warn); }
+#howCard #howSays code { font-family: var(--mono); font-size: 0.88em; }
+
+/* ------------------------------------------------------------- the folds */
+
+details.fold { padding: 0; }
+details.fold > summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  align-items: baseline;
+  padding: 1.05rem 1.3rem;
+  cursor: pointer;
+  list-style: none;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+
+/* The triangle, drawn rather than borrowed, so it turns the same way in every
+ * browser and does not inherit a platform glyph nobody chose. */
+details.fold > summary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  border-left-color: var(--ink-faint);
+  transform: translateY(-0.05em);
+  transition: transform 0.12s;
+}
+details.fold[open] > summary::before { transform: rotate(90deg) translateX(-0.05em); }
+
+details.fold > summary h2 { margin: 0; }
+details.fold > summary:hover h2 { color: var(--accent-ink); }
+details.fold > summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+.summary-say {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+details.fold > *:not(summary) { margin-left: 1.3rem; margin-right: 1.3rem; }
+details.fold > *:last-child { margin-bottom: 1.3rem; }
+details.fold h3 { margin: 1.2rem 0 0.4rem; font-size: 0.9rem; color: var(--ink-soft); }
+
+@media (max-width: 40rem) {
+  .summary-say { margin-left: 0; width: 100%; }
+  .go-row { flex-direction: column; align-items: stretch; }
+  .go.big { width: 100%; }
+}

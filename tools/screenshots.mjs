@@ -43,19 +43,29 @@ try {
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.waitForTimeout(900);
 
-  // The page before anything has happened: the controls, and a console with
-  // nothing in it yet.
+  const readIt = async (target, way) => {
+    await target.selectOption('#way', way);
+    await target.click('#readIt');
+  };
+
+  const signInAs = async (who) => {
+    await page.evaluate(() => {
+      document.getElementById('boundaryFold').open = true;
+    });
+    await page.click(`[data-client="${who}"]`);
+    await page.waitForTimeout(700);
+  };
+
+  // The page as somebody arrives at it: what it can read, said at the top, and
+  // one place to put a document. Nothing asked for first.
   await page.screenshot({ path: path.join(DOCS, 'panel.png'), fullPage: true });
   say('panel.png');
 
-  // The whole journey, ending with the stream having run. This is the picture
-  // that says what the project is.
-  await page.click('[data-client="reader-and-writer"]');
-  await page.click('#getToken');
-  await page.waitForTimeout(600);
+  // The whole journey, ending with the stream having run and the engine chain
+  // showing which one read it. This is the picture that says what the project is.
   await page.click('[data-sample="invoice.pdf"]');
   await page.waitForTimeout(600);
-  await page.click('button[value="live"]');
+  await readIt(page, 'live');
   await page.waitForFunction(() => document.getElementById('text')?.textContent?.length > 100, {
     timeout: 20000,
   });
@@ -64,39 +74,44 @@ try {
   await page.screenshot({ path: path.join(DOCS, 'read.png'), fullPage: true });
   say('read.png');
 
+  // A scan with no key: the expected answer, and said as one. This is the
+  // picture that stops somebody concluding the service is broken.
+  await page.click('[data-sample="scan.png"]');
+  await page.waitForTimeout(600);
+  await readIt(page, 'wait');
+  await page.waitForTimeout(2000);
+
+  await page.locator('#howCard').screenshot({ path: path.join(DOCS, 'needs-a-key.png') });
+  say('needs-a-key.png');
+
   // The refusals, which are the demonstration rather than a failure of it.
-  await page.click('[data-client="uploader"]');
-  await page.click('#getToken');
+  await signInAs('uploader');
+  await page.click('[data-sample="invoice.pdf"]');
   await page.waitForTimeout(500);
-  await page.click('button[value="job"]');
+  await readIt(page, 'job');
   await page.waitForTimeout(2500);
 
-  await page.click('[data-client="reader-and-writer"]');
-  await page.click('#getToken');
-  await page.waitForTimeout(400);
-  await page.click('[data-sample="scan.png"]');
-  await page.waitForTimeout(500);
-  await page.click('button[value="wait"]');
-  await page.waitForTimeout(1800);
+  await page.evaluate(() => {
+    document.getElementById('wireFold').open = true;
+  });
+  await page.waitForTimeout(300);
 
-  await page.locator('.card.console').screenshot({ path: path.join(DOCS, 'refusals.png') });
+  await page.locator('#wireFold').screenshot({ path: path.join(DOCS, 'refusals.png') });
   say('refusals.png');
   await page.close();
 
-  // On a phone, where the two answers stack and the console keeps its height.
+  // On a phone, where the controls stack and the drop zone keeps its size.
   const phone = await browser.newPage({
     viewport: { width: 390, height: 900 },
     deviceScaleFactor: 2,
     reducedMotion: 'reduce',
   });
   await phone.goto(BASE, { waitUntil: 'networkidle' });
-  await phone.waitForTimeout(700);
-  await phone.click('#getToken');
-  await phone.waitForTimeout(500);
+  await phone.waitForTimeout(900);
   await phone.click('[data-sample="letter.pdf"]');
   await phone.waitForTimeout(500);
-  await phone.click('button[value="live"]');
-  await phone.waitForTimeout(2000);
+  await readIt(phone, 'live');
+  await phone.waitForTimeout(2500);
   await phone.screenshot({ path: path.join(DOCS, 'phone.png'), fullPage: true });
   say('phone.png');
   await phone.close();

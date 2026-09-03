@@ -49,7 +49,8 @@ relative, and glyph widths — without which a table row arrives as
   exactly that version — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 - **Nothing else.** No database, no Docker, no API key, no account. Three
   runtime dependencies: Express, `jsonwebtoken`, `multer`.
-- **About 30 MB** of `node_modules`, and no network after `npm install`.
+- **16 MB** of `node_modules`, measured with `du -sh`, and no network after
+  `npm install`. It said "about 30" until somebody measured.
 - **A key is optional.** Without `MISTRAL_API_KEY` the service reads PDFs that
   carry their text and refuses scans **with a reason**. Set it and it reads
   those too.

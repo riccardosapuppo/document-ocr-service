@@ -54,6 +54,11 @@ try {
     is(`${file} has no Last-Modified`, asset.headers.get('last-modified'), null);
   }
 
+  const script = await (await fetch(`http://127.0.0.1:${PORT}/app.js`)).text();
+
+  has('the page unregisters service workers left on this origin', script, 'getRegistrations()');
+  has('and clears their caches', script, 'caches.delete');
+
   // The failure this guards against: a request for `/ngsw.json` answered with
   // 200 and a page of HTML, which a service worker then treats as its manifest.
   for (const missing of ['/ngsw.json', '/panel.old.js', '/samples/nothing.pdf']) {

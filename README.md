@@ -67,9 +67,17 @@ that changes it named in the sentence. The engine chain above it shows why —
 the cheap engine passed on a file it is not for, and the expensive one is not
 configured.
 
-The two browser-driven checks (`check:screen`, `screenshots`) want
-`playwright-core` on the path. They are checks, not dependencies, so they are
-not installed here; they say so and stop rather than pretending to have passed.
+The browser-driven checks (`check:screen`, `check:mark`, `screenshots`,
+`samples`) drive **Microsoft Edge**, already on the machine, through
+`playwright-core` — a devDependency, so `npm install` gets it and no browser
+is downloaded.
+
+It used to be left uninstalled, on the argument that a check is not a
+dependency. It was tidy, and it meant the publication gate could not run two
+of the checks the README names — so they ran only when somebody remembered to
+run them, which is the arrangement every rule in this repository exists to
+avoid. A check nobody can run on a clean clone is a check that has stopped
+being one.
 
 ## Running it
 

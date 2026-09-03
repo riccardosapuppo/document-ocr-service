@@ -21,7 +21,29 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const web = path.join(here, '..', 'public');
 
-const component = fs.readFileSync(path.join(web, 'index.html'), 'utf8');
+const page = fs.readFileSync(path.join(web, 'index.html'), 'utf8');
+
+/**
+ * Only the marked <svg>, not every shape on the page.
+ *
+ * This read the whole file until a drop zone was added with a small drawing
+ * in it, and the check correctly reported a drift -- between the mark and a
+ * mark plus two rectangles that were never part of it. Correct alarm, wrong
+ * thing counted.
+ *
+ * The fix is not a cleverer pattern. It is that WHICH element is the mark is a
+ * fact about the page, so the page states it, with a data-mark attribute.
+ * Anything else drawn here is then free to be drawn.
+ */
+const marked = page.match(/<svg [^>]*data-mark[^]*?<[/]svg>/);
+
+if (!marked) {
+  console.error('No <svg data-mark> in public/index.html, so there is nothing to compare.');
+  console.error('The header mark carries that attribute so this check knows which drawing is the mark.');
+  process.exit(1);
+}
+
+const component = marked[0];
 const favicon = fs.readFileSync(path.join(web, 'favicon.svg'), 'utf8');
 
 /**

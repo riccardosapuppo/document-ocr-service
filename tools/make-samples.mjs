@@ -115,6 +115,26 @@ const DOCUMENTS = {
   `,
 };
 
+/**
+ * The same date every time, in place of the one the browser stamped.
+ *
+ * `D:` and fourteen digits is a fixed-width field, so this is a substitution
+ * and not a rewrite: the file keeps its length, and every byte offset in the
+ * cross-reference table still points where it did. Doing it any other way
+ * means renumbering the xref, which is a lot of work to change a date nobody
+ * reads.
+ *
+ * latin1 both ways because it maps bytes one to one: this is a binary file
+ * being edited as text, and any other encoding would rewrite the compressed
+ * streams on the way through.
+ */
+function withoutTheClock(pdf) {
+  return Buffer.from(
+    pdf.toString('latin1').replace(/D:[0-9]{14}/g, 'D:20260101000000'),
+    'latin1'
+  );
+}
+
 fs.mkdirSync(SAMPLES, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'msedge' });
@@ -124,7 +144,16 @@ try {
 
   for (const [name, html] of Object.entries(DOCUMENTS)) {
     await page.setContent(html, { waitUntil: 'load' });
-    await page.pdf({ path: path.join(SAMPLES, name), format: 'A4', printBackground: true });
+
+    // Through a buffer, so the clock can be taken out of it before the file
+    // lands. Chromium stamps /CreationDate and /ModDate with the wall clock,
+    // so re-running this produced three files that differed from the committed
+    // ones by ten bytes and nothing else. That is enough to dirty the working
+    // tree for no reason, and enough that nobody can check the samples are the
+    // samples.
+    const pdf = await page.pdf({ format: 'A4', printBackground: true });
+    fs.writeFileSync(path.join(SAMPLES, name), withoutTheClock(pdf));
+
     console.log(`  samples/${name}`);
   }
 

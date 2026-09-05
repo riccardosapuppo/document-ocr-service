@@ -125,3 +125,106 @@ describe('what the README promises about the runtime', () => {
     }
   });
 });
+
+describe('what the README says node_modules weighs', () => {
+  /**
+   * The folder, counted the way `du` counts it: the room the filesystem gave
+   * the files, not the room their contents need. A hundred packages of small
+   * files cost a cluster each, so the two figures sit a few megabytes apart,
+   * and the one a reader checks is the disk one.
+   *
+   * A file whose block count comes back as zero is small enough to live inside
+   * its own directory record — NTFS does that under about a kilobyte — and is
+   * counted at its size, which is the nearest true thing to say about it.
+   */
+  function weigh(folder) {
+    let bytes = 0;
+    let files = 0;
+
+    const walk = (dir) => {
+      bytes += (fs.statSync(dir).blocks ?? 0) * 512;
+
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const one = path.join(dir, entry.name);
+
+        // Neither branch follows a symlink, and nor does `du`: on Unix, .bin is
+        // a folder of links into the packages beside it, and following them would
+        // weigh those packages twice.
+        if (entry.isDirectory()) {
+          walk(one);
+        } else if (entry.isFile()) {
+          const on = fs.statSync(one);
+          bytes += on.blocks ? on.blocks * 512 : on.size;
+          files += 1;
+        }
+      }
+    };
+
+    walk(folder);
+    return { megabytes: bytes / 1024 / 1024, files };
+  }
+
+  // "About", because the answer moves a little and the claim should not: a
+  // filesystem with larger clusters rounds a thousand small files further up,
+  // and the bundler ships a different binary per platform. Five megabytes is
+  // wide enough that bumping a dependency does not turn CI red, and narrow
+  // enough that the 16 MB this line used to say is caught the first time
+  // anybody runs the tests — which is the drift that put this check here.
+  const MARGIN = 5;
+
+  const said = readme.match(/\*\*About (\d+) MB\*\* of `node_modules`/);
+  const modules = path.join(root, 'node_modules');
+
+  it('is what the folder on disk really weighs', () => {
+    assert.ok(said, 'the README no longer states a size for node_modules in a form this can read');
+    assert.ok(fs.existsSync(modules), 'there is no node_modules here to weigh');
+
+    const weighed = weigh(modules);
+    const claimed = Number(said[1]);
+
+    assert.ok(
+      Math.abs(claimed - weighed.megabytes) <= MARGIN,
+      `the README says about ${claimed} MB of node_modules; it weighs ${weighed.megabytes.toFixed(1)} MB`
+    );
+  });
+
+  it('and the walk found the folder, so this cannot pass by weighing nothing', () => {
+    // An empty or unreadable node_modules weighs nothing, and nothing is within
+    // five megabytes of any figure somebody would write down. There are a
+    // thousand files under there; a hundred is the loosest floor that still
+    // means the walk found the folder rather than the idea of it.
+    const { files } = weigh(modules);
+    assert.ok(files > 100, `only ${files} files were found under node_modules`);
+  });
+});
+
+describe('the checks the README calls browser-driven', () => {
+  // The sentence lists them, and the list was wrong: it counted `check:mark`,
+  // which compares two SVG files on disk and has never opened anything. So the
+  // names are read back out of the sentence and each tool is asked.
+  const listed = readme.match(/The browser-driven checks \(([^)]+)\)/s);
+  const named = [...(listed?.[1] ?? '').matchAll(/`([a-z0-9:-]+)`/g)].map((one) => one[1]);
+
+  /** Whether the script's tool loads the driver, rather than merely naming it. */
+  const drivesABrowser = (script) => {
+    const tool = manifest.scripts?.[script]?.match(/tools\/[a-z0-9.-]+\.mjs/)?.[0];
+    if (!tool) return false;
+
+    const source = fs.readFileSync(path.join(root, tool), 'utf8');
+    return /require\(\s*['"]playwright-core['"]\s*\)|from\s+['"]playwright-core['"]/.test(source);
+  };
+
+  it('are the checks that really load one', () => {
+    assert.ok(named.length >= 3, `only ${named.length} names were read out of that sentence`);
+
+    const walking = named.filter((one) => !drivesABrowser(one));
+    assert.deepEqual(walking, [], `called browser-driven and never load playwright-core: ${walking.join(', ')}`);
+  });
+
+  it('and no script that loads one is left out, so the list cannot rot by omission', () => {
+    const driving = Object.keys(manifest.scripts ?? {}).filter(drivesABrowser);
+    const unsaid = driving.filter((one) => !named.includes(one));
+
+    assert.deepEqual(unsaid, [], `these drive a browser and that sentence does not say so: ${unsaid.join(', ')}`);
+  });
+});

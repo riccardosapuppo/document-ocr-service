@@ -49,8 +49,12 @@ relative, and glyph widths — without which a table row arrives as
   exactly that version — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 - **Nothing else.** No database, no Docker, no API key, no account. Three
   runtime dependencies: Express, `jsonwebtoken`, `multer`.
-- **16 MB** of `node_modules`, measured with `du -sh`, and no network after
-  `npm install`. It said "about 30" until somebody measured.
+- **About 30 MB** of `node_modules`, and no network after `npm install`. Most
+  of it is the browser driver and the bundler, both devDependencies. The figure
+  is weighed rather than remembered: `npm test` measures the folder and fails
+  when this line has drifted from it. It said **16 MB** — true on the morning
+  somebody ran `du`, false by the afternoon, when `playwright-core` was
+  installed and nearly doubled the folder.
 - **A key is optional, and the page proves it rather than promising it.**
   Without `MISTRAL_API_KEY` the service reads any PDF that carries its own text
   — which is most of them — and refuses a scan **with a reason and the name of
@@ -67,10 +71,12 @@ that changes it named in the sentence. The engine chain above it shows why —
 the cheap engine passed on a file it is not for, and the expensive one is not
 configured.
 
-The browser-driven checks (`check:screen`, `check:mark`, `screenshots`,
-`samples`) drive **Microsoft Edge**, already on the machine, through
-`playwright-core` — a devDependency, so `npm install` gets it and no browser
-is downloaded.
+The browser-driven checks (`check:screen`, `screenshots`, `samples`) drive
+**Microsoft Edge**, already on the machine, through `playwright-core` — a
+devDependency, so `npm install` gets it and no browser is downloaded. This list
+counted `check:mark` as well, which opens nothing: it compares two SVG files on
+disk. `npm test` now reads the names back out of this sentence and asks each
+tool whether it loads the driver.
 
 It used to be left uninstalled, on the argument that a check is not a
 dependency. It was tidy, and it meant the publication gate could not run two
@@ -228,7 +234,7 @@ the tests run without one.
 ## Checking it
 
 ```
-npm test               # 64 assertions over the parts
+npm test               # 68 assertions over the parts
 npm run walkthrough    # 39 over HTTP, against a service it starts itself
 npm run check:screen   # 24 driving the page with a browser, likewise
 npm run check:mark     # the header mark and the tab icon are one drawing

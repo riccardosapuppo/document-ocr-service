@@ -3,9 +3,9 @@
 An internal HTTP service that returns the text in an uploaded document, so other
 applications can use text recognition without embedding it.
 
-Three ways to ask for the same work — **wait for it**, **watch it happen**, or
-**come back for it** — behind OAuth2 client credentials with real scopes and a
-rate limit counted per caller.
+**Wait for it**, **watch it happen**, or **come back for it**: three ways to ask
+for the same work, behind OAuth2 client credentials with real scopes and a rate
+limit counted per caller.
 
 ![The page after reading an invoice: a banner saying no API key is set and what that does not stop, a drop zone holding invoice.pdf, the engine chain showing text-layer read it in 3 ms, and the extracted text below](docs/read.png)
 
@@ -40,25 +40,28 @@ The PDF reader is written by hand, in [`src/ocr/pdf-text.js`](src/ocr/pdf-text.j
 against PDFs a browser produced rather than PDFs this repository also produced.
 Three things broke on real files and each is a comment in that file now: subset
 fonts whose glyph codes are not characters, `Tm` being absolute where `Td` is
-relative, and glyph widths — without which a table row arrives as
+relative, and glyph widths, without which a table row arrives as
 `Nitrile gloves, medium126.2074.40`.
 
 ## Before you start
 
 - **Node 20.11 or newer.** Declared in `engines` and proved by CI, which pins
-  exactly that version — see [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+  exactly that version ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 - **Nothing else.** No database, no Docker, no API key, no account. Three
   runtime dependencies: Express, `jsonwebtoken`, `multer`.
-- **About 30 MB** of `node_modules`, and no network after `npm install`. Most
-  of it is the browser driver and the bundler, both devDependencies. The figure
-  is weighed rather than remembered: `npm test` measures the folder and fails
-  when this line has drifted from it. It said **16 MB** — true on the morning
+- **About 39 MB on Linux** of `node_modules`, a few megabytes less on Windows,
+  and no network after `npm install`. Most of it is the browser driver and the
+  bundler, both devDependencies, and both ship a different binary per platform,
+  which is why the figure names the platform it was weighed on instead of
+  pretending one number is true everywhere. It is weighed rather than
+  remembered: `npm test` measures the folder and fails when this line has
+  drifted from it. It said **16 MB**, true on the morning
   somebody ran `du`, false by the afternoon, when `playwright-core` was
   installed and nearly doubled the folder.
 - **A key is optional, and the page proves it rather than promising it.**
   Without `MISTRAL_API_KEY` the service reads any PDF that carries its own text
-  — which is most of them — and refuses a scan **with a reason and the name of
-  the variable that changes it**. The page says which of the two states it is in
+  (which is most of them) and refuses a scan **with a reason and the name of the
+  variable that changes it**. The page says which of the two states it is in
   before you press anything, so the refusal is expected rather than a surprise,
   and `npm run check:screen` asserts both halves of that.
 - **To undo it:** delete the folder. Nothing is written outside it.
@@ -67,23 +70,22 @@ relative, and glyph widths — without which a table row arrives as
 
 That is what a refusal looks like here. Not a red error: the documented
 state of a service running without a key, said as such, with the one thing
-that changes it named in the sentence. The engine chain above it shows why —
-the cheap engine passed on a file it is not for, and the expensive one is not
+that changes it named in the sentence. The engine chain above it shows why: the
+cheap engine passed on a file it is not for, and the expensive one is not
 configured.
 
 The browser-driven checks (`check:screen`, `screenshots`, `samples`) drive
-**Microsoft Edge**, already on the machine, through `playwright-core` — a
-devDependency, so `npm install` gets it and no browser is downloaded. This list
+**Microsoft Edge**, already on the machine, through `playwright-core`, a
+devDependency that `npm install` gets without downloading a browser. This list
 counted `check:mark` as well, which opens nothing: it compares two SVG files on
 disk. `npm test` now reads the names back out of this sentence and asks each
 tool whether it loads the driver.
 
 It used to be left uninstalled, on the argument that a check is not a
 dependency. It was tidy, and it meant the publication gate could not run two
-of the checks the README names — so they ran only when somebody remembered to
-run them, which is the arrangement every rule in this repository exists to
-avoid. A check nobody can run on a clean clone is a check that has stopped
-being one.
+of the checks the README names, so they ran only when somebody remembered to,
+which is the arrangement every rule in this repository exists to avoid. A check
+nobody can run on a clean clone is a check that has stopped being one.
 
 ## Running it
 
@@ -93,7 +95,7 @@ npm start
 ```
 
 That is all of it. The page opens by itself on <http://127.0.0.1:3400>, and the
-first thing you can do on it is **drop a PDF in and read it** — no key, no
+first thing you can do on it is **drop a PDF in and read it**, with no key, no
 account, nothing to sign up for. Four invented documents are one click away if
 you have none to hand.
 
@@ -106,9 +108,9 @@ fold further down, where you can sign in as a client that will refuse you.
 > *"1 — Get a token"*, which was the order the API is used in and the wrong
 > order for a page: somebody who arrived, dropped a PDF in and was told to
 > authenticate first read it as the service demanding a key it had not been
-> given. Which is the opposite of the thing this project is for. The API was
-> right the whole time — only the page was wrong, and the only way to check the
-> order of a page is to arrive at it, so now `npm run check:screen` does.
+> given. Which is the opposite of the thing this project is for. The page was
+> wrong, not the API, and the only way to check the order of a page is to arrive
+> at it, so now `npm run check:screen` does.
 
 The browser is not opened in CI, with no terminal attached, or when you say
 `--no-open` (or set `NO_OPEN=1`), and it says which of those happened. A
@@ -125,7 +127,7 @@ uploaded and listens on every interface the moment it starts has made a decision
 on their behalf.
 
 **3400, not 3000.** That is the port every project on a machine uses in turn, and
-this one has already talked to a different project's server left running there —
+this one has already talked to a different project's server left running there,
 answering questions about a system it has nothing to do with. A browser also
 remembers service workers, storage and permissions per origin, so two projects
 sharing a port share state neither knows about.
@@ -147,8 +149,8 @@ assertion rather than a demonstration.
 The secrets are stored as SHA-256 hashes in
 [`config/clients.json`](config/clients.json), and a client may hold **more than
 one**. That is not decoration: rotating means adding the new hash, letting the
-caller change over, and removing the old one — three deploys with no window in
-which the caller is locked out. With a single secret the rotation is a cut, and
+caller change over, and removing the old one (three deploys with no window in
+which the caller is locked out). With a single secret the rotation is a cut, and
 cuts get postponed until the secret is years old.
 
 To add your own: `node tools/hash-secret.mjs "the secret you generated"`.
@@ -157,7 +159,7 @@ To add your own: `node tools/hash-secret.mjs "the secret you generated"`.
 
 `ocr:write` submits. `ocr:read` collects. They separate because the jobs are
 asynchronous: something submits and something polls, and those are often
-different processes with different exposure — a public-facing uploader that must
+different processes with different exposure: a public-facing uploader that must
 never be able to read back somebody else's result, and a worker that reads and
 never submits.
 
@@ -194,8 +196,8 @@ curl -s -X POST http://127.0.0.1:3400/api/read \
 The streaming one is NDJSON rather than server-sent events, because the caller is
 usually another program: parsing NDJSON needs `split('\n')` where SSE needs a
 client library. It sets `X-Accel-Buffering: no`, without which an nginx in front
-delivers the whole response at the end — a streaming endpoint that does not
-stream and looks like a hung request. Its errors go in the **body**, not the
+delivers the whole response at the end, leaving a streaming endpoint that does
+not stream and looks like a hung request. Its errors go in the **body**, not the
 status, because the status line left with the first byte.
 
 A job answers `202` before the work starts. Keeping a caller waiting for the
@@ -247,7 +249,7 @@ Three layers, because a check at one cannot see the next.
 and the jobs. Time is injected everywhere: a test that proves a fifteen-minute
 expiry by waiting fifteen minutes does not get run, and one that proves it by
 waiting a second gets marked flaky and deleted. It found two defects rather than
-the other way round — `kept_until` was `job.finishedAt ? … : null`, so a job that
+the other way round: `kept_until` was `job.finishedAt ? … : null`, so a job that
 finished at the epoch reported that it never had; and the token issuer took an
 injected clock and used it for the three fields it printed while `expiresIn` was
 still measured from the real one.
@@ -257,9 +259,9 @@ code. Half of it is about what must **not** work: a write-only client that
 cannot read back what it submitted, a read-only client that cannot collect
 somebody else's job, a switched-off client whose secret is right, a rate limit
 that catches one caller and not the next. It edits the client file to prove the
-reload happens without a restart, and puts it back exactly as it found it —
-a check that leaves its scaffolding behind eventually accuses the service of its
-own mess.
+reload happens without a restart, and puts it back exactly as it found it,
+because a check that leaves its scaffolding behind eventually accuses the
+service of its own mess.
 
 **`npm run check:screen`** drives the page. Two things live only there: the
 NDJSON reader, whose every defect is invisible from the server side because a
@@ -274,8 +276,8 @@ npm run build:binary
 ```
 
 The original shipped with `pkg`, which is no longer maintained. Node has since
-grown the capability itself, so this uses that — the same idea with nothing
-unmaintained in the chain.
+grown the capability itself, so this uses that and keeps the same idea with
+nothing unmaintained in the chain.
 
 Two steps. The first bundles everything into `dist/service.cjs`, which runs
 anywhere Node does and is already useful. The second glues that into a copy of
@@ -286,7 +288,7 @@ push, which is how the claim above stays true rather than being asserted once.
 
 The client file and the samples stay **outside** the binary. They are
 configuration and data, and a service whose list of callers is baked into the
-executable cannot have one added without a rebuild — which is the whole thing the
+executable cannot have one added without a rebuild, which is the whole thing the
 reloading client file exists to avoid.
 
 ## Where things are

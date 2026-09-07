@@ -164,15 +164,32 @@ describe('what the README says node_modules weighs', () => {
     return { megabytes: bytes / 1024 / 1024, files };
   }
 
-  // "About", because the answer moves a little and the claim should not: a
-  // filesystem with larger clusters rounds a thousand small files further up,
-  // and the bundler ships a different binary per platform. Five megabytes is
-  // wide enough that bumping a dependency does not turn CI red, and narrow
-  // enough that the 16 MB this line used to say is caught the first time
-  // anybody runs the tests — which is the drift that put this check here.
+  // Five megabytes is wide enough that bumping a dependency does not turn CI
+  // red, and narrow enough that the 16 MB this line used to say is caught the
+  // first time anybody runs the tests, which is the drift that put this check
+  // here.
+  //
+  // It only holds on one platform, and that is why the sentence names one. The
+  // two biggest things down there are the browser driver and the bundler, and
+  // both ship a different binary per operating system: the same folder weighs
+  // 39 MB on Linux and 28 on Windows. A margin wide enough to cover both would
+  // be twelve, and twelve lets an eight-megabyte dependency in without a word,
+  // which is the whole thing this is here to notice. So the figure is checked
+  // strictly where it was measured, and elsewhere against a band that still
+  // catches a figure somebody forgot to update.
   const MARGIN = 5;
+  const WEIGHED_ON = 'linux';
 
-  const said = readme.match(/\*\*About (\d+) MB\*\* of `node_modules`/);
+  // Off that platform the claim cannot be checked against the local folder, and
+  // a band wide enough to try is worse than not trying: eleven megabytes
+  // separate Linux from Windows here, and the stale 16 MB sits inside eleven of
+  // the Windows weight too, so it would pass. What IS true anywhere is the
+  // direction. The two heavy things down there are the browser driver and the
+  // bundler, and their Linux binaries are the larger ones, so a figure measured
+  // on Linux is at least what this platform weighs and not far above it.
+  const PLATFORM_ALLOWANCE = 15;
+
+  const said = readme.match(/\*\*About (\d+) MB on Linux\*\* of `node_modules`/);
   const modules = path.join(root, 'node_modules');
 
   it('is what the folder on disk really weighs', () => {
@@ -181,10 +198,19 @@ describe('what the README says node_modules weighs', () => {
 
     const weighed = weigh(modules);
     const claimed = Number(said[1]);
+    if (process.platform === WEIGHED_ON) {
+      assert.ok(
+        Math.abs(claimed - weighed.megabytes) <= MARGIN,
+        `the README says about ${claimed} MB of node_modules; it weighs ${weighed.megabytes.toFixed(1)} MB`
+      );
+      return;
+    }
 
     assert.ok(
-      Math.abs(claimed - weighed.megabytes) <= MARGIN,
-      `the README says about ${claimed} MB of node_modules; it weighs ${weighed.megabytes.toFixed(1)} MB`
+      claimed >= weighed.megabytes && claimed <= weighed.megabytes + PLATFORM_ALLOWANCE,
+      `the README says ${claimed} MB, measured on ${WEIGHED_ON}. This is ` +
+        `${process.platform}, where the folder weighs ${weighed.megabytes.toFixed(1)} MB, ` +
+        `so the figure should sit between that and ${(weighed.megabytes + PLATFORM_ALLOWANCE).toFixed(1)}`
     );
   });
 

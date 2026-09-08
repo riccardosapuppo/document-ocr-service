@@ -47,26 +47,31 @@
             <rect x="8" y="7" width="11" height="18" rx="2.5" fill="var(--logo-mark)" opacity="0.55" />
             <rect x="12" y="14" width="14" height="4.5" rx="2.25" fill="var(--logo-mark)" />
           </svg>
+          <!--
+            The name, and under it what this IS.
+
+            That slot used to hold what this copy can READ, which the two chips
+            opposite already say and the strip below says once more in prose:
+            the same fact three times in the first two hundred pixels, and
+            nowhere a word about what somebody is looking at. A page with a
+            file box on it otherwise reads as a tool you use once.
+          -->
           <span class="wordmark">
             <strong>Document OCR</strong>
-            <span id="whereItReads">reading the service…</span>
+            <span class="says">Text out of a document, over HTTP, for other programs to call</span>
           </span>
         </span>
 
-        <p class="engines" id="engines"></p>
+        <!--
+          What it can read, and the engines it is said about, together. One
+          statement on one side, rather than a sentence stranded between the
+          two things it belonged to.
+        -->
+        <div class="can">
+          <p class="can-say">reads <span id="whereItReads">…</span></p>
+          <p class="engines" id="engines"></p>
+        </div>
       </div>
-
-      <!--
-        What this is, said at the top rather than inferred from a drop zone.
-        A page with a file box on it looks like a tool; this is a service other
-        programs call, behind a permission boundary, and that is the part worth
-        arriving already knowing.
-      -->
-      <p class="says">
-        Text out of a document, over HTTP, for other programs to call.
-        <span>Three ways to wait for it, five clients with different
-        permissions, and every exchange shown as it goes.</span>
-      </p>
     </header>
 
     <!--

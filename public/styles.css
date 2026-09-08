@@ -131,25 +131,17 @@ code {
 .top .wordmark strong { color: #fff; }
 .top .wordmark span { color: var(--panel-faint); }
 
-/*
- * What this is, in one line, before anything asks to be dropped anywhere.
- *
- * A page with a file box on it looks like a tool you use once. This is a
- * service other programs call, and somebody deciding whether the work is any
- * good should arrive knowing that rather than inferring it.
- */
-.says {
-  width: min(72rem, 100%);
-  margin: 0 auto;
-  /* The same 1.4rem the bar above uses, so the sentence begins under the name
-     rather than somewhere near the middle of it. */
-  padding: 0 1.4rem 1.4rem;
-  max-width: 68ch;
-  font-size: 1.02rem;
-  line-height: 1.5;
-  color: #efeefa;
+/* What it can read, over the engines that sentence is about. */
+.can { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
+
+.can-say {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--panel-faint);
 }
-.says span { display: block; margin-top: 0.35rem; font-size: 0.88rem; color: var(--panel-faint); }
+.can-say span { color: var(--panel-ink); text-transform: none; letter-spacing: 0; font-family: var(--mono); }
 
 .bar {
   display: flex;
@@ -180,12 +172,23 @@ code {
   font-size: 1.02rem;
 }
 
-/* What this copy of the service can actually read. Not a slogan: it changes
-   with the configuration, and it is the first thing somebody needs to know. */
-.wordmark span {
-  font-family: var(--mono);
-  font-size: 0.7rem;
-  color: var(--ink-faint);
+/*
+ * What this IS, under the name.
+ *
+ * This rule used to dress a machine fact — what this copy can read — in the
+ * monospace and the light-theme grey that fact deserved. The fact moved to the
+ * other side of the bar, next to the engines it is about, and prose was left
+ * wearing its clothes: a sentence in monospace reads as a code comment, and
+ * `--ink-faint` is a grey for paper, not for the panel.
+ */
+.wordmark .says {
+  max-width: 46ch;
+  margin-top: 0.1rem;
+  font-family: var(--ui);
+  font-size: 0.86rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--panel-ink);
 }
 
 .engines {

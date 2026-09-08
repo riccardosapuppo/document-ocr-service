@@ -279,6 +279,10 @@ function balanced(source, key, open, close) {
   return null;
 }
 
+/**
+ * @returns {{chars: Map<number, string>, bytes: number}} the mapping, and how
+ *   many bytes one code takes in a string that uses it.
+ */
 function readCMap(source) {
   const map = new Map();
 
@@ -303,7 +307,26 @@ function readCMap(source) {
     }
   }
 
-  return map;
+  return { chars: map, bytes: codeWidth(source) };
+}
+
+/**
+ * How many bytes one code takes, read rather than assumed.
+ *
+ * A CMap opens by declaring it: `<00> <FF>` is one byte per code, `<0000>
+ * <FFFF>` is two. Assuming two, which an Identity-H CID font does use, reads
+ * `<010203>` as one and a half codes of the wrong value: nothing matches the
+ * map, every glyph comes back empty, and a document with a perfectly good text
+ * layer is reported as a scan. Two remains the answer when a CMap does not say,
+ * because that is the case this reader was built against.
+ */
+function codeWidth(source) {
+  const range = source.match(/begincodespacerange([\s\S]*?)endcodespacerange/);
+  const low = range?.[1].match(/<([0-9a-fA-F\s]+)>/);
+  if (!low) return 2;
+
+  const digits = low[1].replace(/\s+/g, '').length;
+  return digits >= 2 ? Math.floor(digits / 2) : 2;
 }
 
 function fromUtf16Hex(hex) {
@@ -431,6 +454,7 @@ function textIn(content, fonts, unicode, widths) {
 
   /** The font in use, and its size, from the last `Tf`. */
   let map = null;
+  let codeBytes = 2;
   let wide = null;
   let size = 12;
 
@@ -499,7 +523,9 @@ function textIn(content, fonts, unicode, widths) {
     ] = token;
 
     if (font !== undefined) {
-      map = unicode.get(fonts.get(font)) ?? null;
+      const found = unicode.get(fonts.get(font));
+      map = found?.chars ?? null;
+      codeBytes = found?.bytes ?? 2;
       wide = widths.get(fonts.get(font)) ?? null;
       size = Math.abs(Number(fontSize)) || 12;
       continue;
@@ -532,7 +558,7 @@ function textIn(content, fonts, unicode, widths) {
     if (kerned !== undefined) {
       for (const part of kerned.matchAll(/<([0-9a-fA-F\s]*)>|(\((?:\\.|[^\\)])*\))|(-?[\d.]+)/g)) {
         if (part[1] !== undefined) {
-          const drawn = fromHex(part[1], map, wide);
+          const drawn = fromHex(part[1], map, wide, codeBytes);
           out += drawn.text;
           penX += drawn.width * size;
         } else if (part[2] !== undefined) {
@@ -553,7 +579,7 @@ function textIn(content, fonts, unicode, widths) {
       out += drawn.text;
       penX += drawn.width * size;
     } else if (hex !== undefined) {
-      const drawn = fromHex(hex, map, wide);
+      const drawn = fromHex(hex, map, wide, codeBytes);
       out += drawn.text;
       penX += drawn.width * size;
     }
@@ -568,15 +594,17 @@ function widthOf(code, wide) {
   return (said === undefined ? 500 : said) / 1000;
 }
 
-function fromHex(hex, map, wide) {
+function fromHex(hex, map, wide, bytes = 2) {
   const clean = hex.replace(/\s+/g, '');
+  const step = bytes * 2;
   let text = '';
   let width = 0;
 
-  // Two bytes per glyph, because these are Identity-H CID fonts. Guessing the
-  // width from the string length reads a three-glyph run as one.
-  for (let at = 0; at + 4 <= clean.length; at += 4) {
-    const code = parseInt(clean.slice(at, at + 4), 16);
+  // How wide a code is comes from the font's own CMap, not from the length of
+  // the string: guessing reads a three-glyph run as one, and guessing the other
+  // way reads three glyphs as none.
+  for (let at = 0; at + step <= clean.length; at += step) {
+    const code = parseInt(clean.slice(at, at + step), 16);
     text += map ? (map.get(code) ?? '') : String.fromCharCode(code);
     width += widthOf(code, wide);
   }

@@ -236,7 +236,7 @@ the tests run without one.
 ## Checking it
 
 ```
-npm test               # 68 assertions over the parts
+npm test               # 72 assertions over the parts
 npm run walkthrough    # 39 over HTTP, against a service it starts itself
 npm run check:screen   # 24 driving the page with a browser, likewise
 npm run check:mark     # the header mark and the tab icon are one drawing

@@ -52,6 +52,18 @@
   --logo-ground: #2a2540;
   --logo-mark: #b9aefc;
 
+  /*
+   * How wide the page holds, and how far its content sits from the edge.
+   *
+   * Declared once because three things have to agree on it: the masthead, the
+   * cards, and the strip between them. They did not — the strip has no width
+   * of its own, so its text began at the window's edge while the other two
+   * began at the column's, and the eye reads that as a wobble it cannot name.
+   * With the numbers in one place they cannot drift apart again.
+   */
+  --hold: 72rem;
+  --gutter: 1.4rem;
+
   --shadow: 0 1px 2px rgb(27 26 36 / 0.05), 0 6px 18px rgb(27 26 36 / 0.06);
 
   --ui: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
@@ -149,9 +161,9 @@ code {
   justify-content: space-between;
   gap: 1.2rem;
   flex-wrap: wrap;
-  width: min(72rem, 100%);
+  width: min(var(--hold), 100%);
   margin: 0 auto;
-  padding: 0.7rem 1.4rem;
+  padding: 0.7rem var(--gutter);
 }
 
 .brand {
@@ -230,9 +242,9 @@ code {
 /* --------------------------------------------------------------------- page */
 
 main {
-  width: min(72rem, 100%);
+  width: min(var(--hold), 100%);
   margin: 0 auto;
-  padding: 1.5rem 1.4rem 3rem;
+  padding: 1.5rem var(--gutter) 3rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -562,12 +574,17 @@ footer .by a:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  /* One number, and all three follow it. */
+  :root {
+    --gutter: 1rem;
+  }
+
   .bar {
-    padding: 0.6rem 1rem;
+    padding-block: 0.6rem;
   }
 
   main {
-    padding: 1.2rem 1rem 2.5rem;
+    padding-block: 1.2rem 2.5rem;
   }
 
   input[type='text'],
@@ -686,7 +703,10 @@ label.pick:has(input:focus-visible) {
   gap: 0.7rem;
   align-items: baseline;
   margin: 0;
-  padding: 0.85rem clamp(1rem, 4vw, 2.4rem);
+  /* Full width of the window, because it is a strip; its text where every
+     other left edge on the page is, because it is text. */
+  padding-block: 0.85rem;
+  padding-inline: max(var(--gutter), calc((100% - var(--hold)) / 2 + var(--gutter)));
   border-bottom: 1px solid var(--line);
   background: var(--raised);
   font-size: 0.9rem;

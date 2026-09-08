@@ -56,7 +56,7 @@ const CLIENTS = [
   ['uploader', 'demo-secret-write-1234', 'submits, and may not read back', 'ocr:write'],
   ['collector', 'demo-secret-read-1234', 'collects, and may not submit', 'ocr:read'],
   ['impatient', 'demo-secret-slow-1234', 'three calls a minute', 'ocr:read ocr:write'],
-  ['retired', 'demo-secret-retired-1234', 'switched off in the file', '—'],
+  ['retired', 'demo-secret-retired-1234', 'switched off in the file', 'none'],
 ];
 
 let token = null;
@@ -145,7 +145,7 @@ fetch('/api/health')
     $('modeSays').innerHTML = readsPixels
       ? 'An API key is set, so this reads <strong>both</strong> the text inside a PDF and the pixels of a scan.'
       : 'No API key is set, and it does not need one: this reads <strong>any PDF that carries its own text</strong>, ' +
-        'which is most of them. Only a scan or a photograph will be refused — it has no text to carry — and the ' +
+        'which is most of them. Only a scan or a photograph, having no text to carry, is refused, and the ' +
         'refusal says so and names the one thing that changes it, <code>MISTRAL_API_KEY</code>.';
 
     $('engines').innerHTML = health.engines
@@ -262,7 +262,7 @@ $('readForm').addEventListener('submit', async (event) => {
 
 /** 1. The simple one: hold the connection until it is done. */
 async function waitForIt(form) {
-  say('POST /api/read — holding the connection', 'sent');
+  say('POST /api/read · holding the connection', 'sent');
   progress(0.5);
 
   const response = await fetch('/api/read', {
@@ -278,7 +278,7 @@ async function waitForIt(form) {
   if (!response.ok) return refused(response, body);
 
   arrived(body);
-  say(`read by ${body.engine} in ${body.took_ms} ms — ${body.characters} characters`, 'good');
+  say(`read by ${body.engine} in ${body.took_ms} ms · ${body.characters} characters`, 'good');
 }
 
 /**
@@ -290,7 +290,7 @@ async function waitForIt(form) {
  * Everything up to the last newline is complete; what follows waits.
  */
 async function watchItWork(form) {
-  say('POST /api/read/live — one line per step', 'sent');
+  say('POST /api/read/live · one line per step', 'sent');
 
   const response = await fetch('/api/read/live', {
     method: 'POST',
@@ -345,7 +345,7 @@ function onEvent(event) {
 
 /** 3. The one for work that takes a while: an id, and come back. */
 async function comeBackForIt(form) {
-  say('POST /api/jobs — asking for an id', 'sent');
+  say('POST /api/jobs · asking for an id', 'sent');
 
   const opened = await fetch('/api/jobs', {
     method: 'POST',
@@ -358,7 +358,7 @@ async function comeBackForIt(form) {
 
   if (!opened.ok) return refused(opened, accepted);
 
-  say(`job ${accepted.job_id} — collecting from ${accepted.collect_from}`, 'sent');
+  say(`job ${accepted.job_id} · collecting from ${accepted.collect_from}`, 'sent');
 
   for (let asked = 0; asked < 100; asked += 1) {
     await new Promise((done) => setTimeout(done, 250));

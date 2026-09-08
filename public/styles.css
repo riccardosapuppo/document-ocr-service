@@ -468,6 +468,39 @@ footer {
   font-size: 0.8rem;
 }
 
+/* The signature, and the one link on this page that is not a control.
+ *
+ * Down here the type is 0.8rem set in --ink-faint, so colour alone would not
+ * say "link" to anybody — and the accent would say "advert", which a name at
+ * the foot of a page is not. So the name takes no new colour and no new token:
+ * it steps up to --ink-soft, the ink this console already gives its secondary
+ * text, which reads 7.33:1 on the footer in light and 8.56:1 in dark against
+ * the 3.32:1 the sentence beside it is deliberately set in. The underline is
+ * what carries the meaning, and it is there before the pointer is rather than
+ * arriving on hover. Hover goes the last step to --ink, the way the quiet
+ * controls above darken. The focus ring is the accent outline every control on
+ * this page already wears, held one pixel further out so it clears the
+ * underline, and the radius only keeps it from cutting the corners of a small
+ * word. The transition is caught by the prefers-reduced-motion rule below,
+ * which switches off every transition on this page. */
+footer .by a {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  border-radius: 3px;
+  transition: color 120ms ease;
+}
+
+footer .by a:hover {
+  color: var(--ink);
+}
+
+footer .by a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

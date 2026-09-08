@@ -37,7 +37,14 @@
   --panel: #21203a;
   --panel-line: #35335a;
   --panel-ink: #cfcde8;
-  --panel-faint: #7b789e;
+  /*
+   * Raised from #7b789e, which read 3.77:1 on the panel and is used for the
+   * transcript's ordinary lines — the substance of the console, under the 4.5
+   * that body text has to hold. 4.91:1 now, and still the faint one of the
+   * pair: it is the grey that says "this line is not the interesting one",
+   * which only works if it can be read at all.
+   */
+  --panel-faint: #8f8cb0;
   --panel-good: #6fd6a4;
   --panel-bad: #ff8e88;
   --panel-sent: #8fb6ff;
@@ -103,10 +110,46 @@ code {
 
 /* ------------------------------------------------------------------- header */
 
+/*
+ * The masthead is the console surface, because that is what this project
+ * already calls the place the service speaks.
+ *
+ * It was white, and a white bar over a grey page reads as chrome: something to
+ * scroll past. Everything below it is a client of a service, and the one dark
+ * surface in this stylesheet is the service's own. Opening on it, and closing
+ * on it in the transcript, says the two are the same thing without a word.
+ *
+ * No new colour is spent: the panel, its line and its two greys are already
+ * declared for the console at the foot.
+ */
 .top {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-line);
+  color: var(--panel-ink);
 }
+
+.top .wordmark strong { color: #fff; }
+.top .wordmark span { color: var(--panel-faint); }
+
+/*
+ * What this is, in one line, before anything asks to be dropped anywhere.
+ *
+ * A page with a file box on it looks like a tool you use once. This is a
+ * service other programs call, and somebody deciding whether the work is any
+ * good should arrive knowing that rather than inferring it.
+ */
+.says {
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  /* The same 1.4rem the bar above uses, so the sentence begins under the name
+     rather than somewhere near the middle of it. */
+  padding: 0 1.4rem 1.4rem;
+  max-width: 68ch;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: #efeefa;
+}
+.says span { display: block; margin-top: 0.35rem; font-size: 0.88rem; color: var(--panel-faint); }
 
 .bar {
   display: flex;
@@ -152,13 +195,17 @@ code {
   flex-wrap: wrap;
 }
 
+/* On the panel now, with the masthead. A pale chip designed for a white bar
+   reads as a lit block on a dark one, and these are a quiet statement of fact
+   rather than something to look at first. */
 .engine {
   display: flex;
   flex-direction: column;
   padding: 0.25rem 0.6rem;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--raised);
+  border: 1px solid var(--panel-line);
+  background: rgb(255 255 255 / 0.04);
+  color: var(--panel-ink);
   font-family: var(--mono);
   font-size: 0.76rem;
   line-height: 1.35;
@@ -167,7 +214,7 @@ code {
 .engine em {
   font-style: normal;
   font-size: 0.66rem;
-  color: var(--ink-faint);
+  color: var(--panel-faint);
 }
 
 /* An engine that cannot run says so here rather than at the moment somebody
@@ -791,4 +838,34 @@ details.fold h3 { margin: 1.2rem 0 0.4rem; font-size: 0.9rem; color: var(--ink-s
   .summary-say { margin-left: 0; width: 100%; }
   .go-row { flex-direction: column; align-items: stretch; }
   .go.big { width: 100%; }
+}
+
+/*
+ * The invitation under the text.
+ *
+ * Set apart from the passage above it, and quiet: it arrives at a moment when
+ * somebody has what they came for, and its job is to say there is a second
+ * thing here — not to compete with the first.
+ */
+.invitation {
+  margin: 1rem 0 0;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--accent-line);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.invitation code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+.invitation .link {
+  margin-left: 0.15rem;
+  font-weight: 600;
+  color: var(--accent-ink);
 }

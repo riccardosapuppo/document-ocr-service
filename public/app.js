@@ -401,6 +401,9 @@ function arrived(body) {
   $('text').textContent = body.text ?? '';
   $('textCard').hidden = false;
 
+  // Whoever actually got this far, not the one the page opened with.
+  $('invitationWho').textContent = $('clientId').value;
+
   const pages = body.pages ? `${body.pages} page${body.pages === 1 ? '' : 's'}` : null;
 
   saidHow(
@@ -524,3 +527,17 @@ function summary(id, words) {
   const el = $(id);
   if (el) el.textContent = words;
 }
+
+/*
+ * The invitation, wired.
+ *
+ * Opening the fold and scrolling to it is the whole of it: the demonstration
+ * was always there and nobody could find it, which is a placement problem
+ * rather than a missing feature.
+ */
+$('showBoundary').addEventListener('click', () => {
+  const fold = $('boundaryFold');
+
+  fold.open = true;
+  fold.scrollIntoView({ block: 'start', behavior: 'smooth' });
+});

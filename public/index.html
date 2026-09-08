@@ -55,6 +55,18 @@
 
         <p class="engines" id="engines"></p>
       </div>
+
+      <!--
+        What this is, said at the top rather than inferred from a drop zone.
+        A page with a file box on it looks like a tool; this is a service other
+        programs call, behind a permission boundary, and that is the part worth
+        arriving already knowing.
+      -->
+      <p class="says">
+        Text out of a document, over HTTP, for other programs to call.
+        <span>Three ways to wait for it, five clients with different
+        permissions, and every exchange shown as it goes.</span>
+      </p>
     </header>
 
     <!--
@@ -156,6 +168,26 @@
       <section class="card" id="textCard" hidden>
         <h2>The text</h2>
         <pre class="text" id="text">Nothing yet.</pre>
+
+        <!--
+          The invitation, and it waits until here on purpose.
+          
+          The order of this page is argued at the top of the file: nobody is
+          asked to authenticate before the thing works, because a service that
+          demands a key before it does anything teaches the wrong lesson about
+          this one. But once it HAS worked, the interesting half is that it
+          would not have, for four of the five callers in the repository — and
+          nothing on the page said so, so nobody went looking. It is said here,
+          after the success, where it reads as an invitation instead of a toll.
+        -->
+        <p class="invitation" id="invitation">
+          That worked because you are signed in as
+          <code id="invitationWho">reader-and-writer</code>, which may both
+          submit and collect. Four of the five callers in this repository would
+          not have got here: one may submit and not read back, one may read and
+          not submit, one is rate-limited, one is switched off.
+          <button type="button" class="link" id="showBoundary">Try one of them</button>
+        </p>
       </section>
 
       <!-- 4. The machinery. Below, and openable. -->
